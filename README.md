@@ -1,20 +1,18 @@
-# Not Enough Runes
-Sources and products for every item in the game!
+# Item Atlas
 
-If you'd like to support development of the plugin, you can donate via [Paypal](https://www.paypal.com/donate/?hosted_button_id=GRMWK88DZNVWY). It's completely optional and you get nothing for it, but it helps me out a lot! ❤️
+Where to get every item in Old School RuneScape and what it's used for: shops, drops, ground spawns, recipes and uses, sourced from the OSRS Wiki.
 
+Item Atlas is a fork of [Not Enough Runes](https://github.com/Hannah-GBS/notenoughrunes) by Hannah_GBS and LlemonDuck (BSD 2-Clause, see [LICENSE](LICENSE)).
 
-https://user-images.githubusercontent.com/7504779/160226998-2879ed72-2104-44b8-9a26-ef7a3580a011.mp4
+## Routing to sources
+
+Right-click a shop or spawn, or use **Route to shop/spawn** on an item's sources, to get directions. Item Atlas works with whichever route plugin you have enabled:
+
+- **GPS**, if it's enabled (preferred, sent on GPS's own channel so it never routes twice)
+- **Shortest Path** otherwise
+
+Routes don't guarantee current shop stock, ground-item availability, or access requirements that aren't in the source data. Drops and recipes are not included in closest-source routing.
 
 ## Quest Helper integration
-NER can look up item requirements directly from the Quest Helper panel
 
-<img width="645" height="428" alt="not-enough-runes-01" src="https://github.com/user-attachments/assets/d2f06f7f-c827-4a2b-b5f3-1eb0540003cc" />
-
-
-## Shortest Path integration
-Right click a Shop or Spawn item to get directions with the Shortest Path plugin, or use the Sources button to ask Shortest Path for a route to the closest eligible listed shop or ground spawn.
-
-Routes do not guarantee current shop stock, ground-item availability, or access requirements that are not represented in the source data. Drops and recipes are not included in closest-source routing.
-
-<img width="245" height="264" alt="image" src="https://github.com/user-attachments/assets/f029b95d-718e-4aac-bd81-291ee260f57a" />
+Quest Helper's item lookups still reach Item Atlas, since it keeps listening on Not Enough Runes' message channel.

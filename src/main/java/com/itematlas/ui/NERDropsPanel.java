@@ -1,0 +1,254 @@
+package com.itematlas.ui;
+
+import com.itematlas.ItemAtlasConfig;
+import com.itematlas.RarityParser;
+import com.itematlas.types.NERDropItem;
+import com.itematlas.types.NERDropSource;
+import static com.itematlas.ui.NERPanel.MAX_ENTRIES;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.font.TextAttribute;
+import java.awt.image.BufferedImage;
+import java.text.DecimalFormat;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.swing.AbstractAction;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JLabel;
+import javax.swing.JMenuItem;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.SwingConstants;
+import javax.swing.border.EmptyBorder;
+import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.eventbus.EventBus;
+import net.runelite.client.events.PluginMessage;
+import net.runelite.client.plugins.Plugin;
+import net.runelite.client.plugins.PluginManager;
+import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.util.ImageUtil;
+
+@Slf4j
+public class NERDropsPanel extends JPanel
+{
+	
+	private static final DecimalFormat PERCENT_FORMAT = new DecimalFormat("#.##%");
+
+	private static final String[] dropTypes = {
+		"agility",
+		"combat",
+		"farming",
+		"firemaking",
+		"fishing",
+		"hunter",
+		"mining",
+		"reward",
+		"smithing",
+		"woodcutting",
+		"thieving",
+		"sailing",
+		"construction",
+		""
+	};
+	private static final Map<String, BufferedImage> dropTypeImages = Stream.of(
+		dropTypes
+	).collect(Collectors.toMap(
+		Function.identity(),
+		name ->
+		{
+			try
+			{
+				if (name.equals(""))
+				{
+					return ImageUtil.loadImageResource(NERDropsPanel.class, "drop_source_types/combat.png");
+				}
+				else
+				{
+					return ImageUtil.loadImageResource(NERDropsPanel.class, "drop_source_types/" + name + ".png");
+				}
+			}
+			catch (Exception e)
+			{
+				return new BufferedImage(20, 20, BufferedImage.TYPE_INT_ARGB);
+			}
+		}
+	));
+
+	public NERDropsPanel(NERDropItem dropItem, EventBus eventBus, PluginManager pluginManager, ItemAtlasConfig config)
+	{
+		setBackground(ColorScheme.DARK_GRAY_COLOR);
+		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+
+		dropItem.getDropSources().stream()
+			.sorted(Comparator.comparing(RarityParser::calculateRarity, Comparator.reverseOrder()))
+			.limit(MAX_ENTRIES)
+			.forEachOrdered(dropSource ->
+			{
+				JPanel container = new JPanel(new BorderLayout());
+				container.setBorder(new EmptyBorder(0, 0, 7, 0));
+				JPanel dropPanel = new JPanel(new GridBagLayout());
+				dropPanel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+				dropPanel.setBorder(new EmptyBorder(7, 7, 6, 7));
+
+				GridBagConstraints gbc = new GridBagConstraints();
+				gbc.gridy = 0;
+				gbc.gridx = 0;
+				gbc.anchor = GridBagConstraints.LINE_START;
+				gbc.gridwidth = 3;
+				gbc.fill = GridBagConstraints.BOTH;
+				gbc.weightx = 1.0;
+				gbc.insets = new Insets(0, 4, 0, 4);
+				JLabel dropName = new JLabel(dropSource.getSource());
+				dropName.setPreferredSize(new Dimension(0, 20));
+				dropPanel.add(dropName, gbc);
+
+				gbc.gridx = 0;
+				gbc.gridy++;
+				gbc.gridwidth = 1;
+				gbc.weightx = 0.0;
+				gbc.fill = GridBagConstraints.NONE;
+				dropPanel.add(new JLabel(buildQuantityString(dropSource)), gbc);
+
+				JLabel dropType = new JLabel(dropSource.getDropLevel() + " " + dropSource.getDropType(), SwingConstants.CENTER);
+				ImageIcon dropTypeIcon = new ImageIcon(new BufferedImage(1, 20, BufferedImage.TYPE_INT_ARGB));
+				if (Arrays.asList(dropTypes).contains(dropSource.getDropType())) {
+					dropTypeIcon = new ImageIcon(dropTypeImages.get(dropSource.getDropType()));
+					dropType.setText(dropSource.getDropLevel());
+				}
+				dropType.setIcon(dropTypeIcon);
+				dropType.setToolTipText(dropSource.getDropLevel());
+				dropType.setPreferredSize(new Dimension(20, 20));
+				gbc.gridx = 1;
+				gbc.weightx = 1.0;
+				gbc.anchor = GridBagConstraints.CENTER;
+				gbc.fill = GridBagConstraints.BOTH;
+				dropPanel.add(dropType, gbc);
+				
+				JLabel rarityLabel = new JLabel(dropSource.getRarity());
+				if (dropSource.getRarity().contains("/"))
+					addTooltip(rarityLabel, PERCENT_FORMAT.format(RarityParser.calculateRarity(dropSource)));
+				gbc.gridx = 2;
+				gbc.anchor = GridBagConstraints.LINE_END;
+				gbc.fill = GridBagConstraints.NONE;
+				gbc.weightx = 0.0;
+				dropPanel.add(rarityLabel, gbc);
+
+				gbc.gridx = 0;
+				gbc.gridy++;
+				gbc.gridwidth = 3;
+				gbc.anchor = GridBagConstraints.CENTER;
+				gbc.fill = GridBagConstraints.BOTH;
+				gbc.insets = new Insets(4, 0, 4, 0);
+
+				boolean bmePluginEnabled = false;
+				for (Plugin p : pluginManager.getPlugins())
+				{
+					if (p.getClass().getName().equals("com.bettermonsterexamine.BetterMonsterExaminePlugin"))
+					{
+						bmePluginEnabled = pluginManager.isPluginActive(p);
+						break;
+					}
+				}
+
+				if (config.bmeNPCLookup() && bmePluginEnabled && dropSource.getDropType().equals("combat")) {
+					JPopupMenu menu = new JPopupMenu("Menu");
+
+					JMenuItem betterMonsterExamineMenu = new JMenuItem(new AbstractAction("Better Monster Examine")
+					{
+						@Override
+						public void actionPerformed(ActionEvent e)
+						{
+							Map<String, Object> data = new HashMap<>();
+							// Remove (eg) "#MVP" or "(Tarn's Lair)" from NPC names
+							String name = dropSource.getSource()
+								.split("#")[0]
+								.split(" \\(")[0];
+							int level = Integer.parseInt(dropSource.getDropLevel().split(",")[0]);
+							data.put("name", name);
+							data.put("level", level);
+							data.put("tab", "drops");
+							eventBus.post(new PluginMessage("bettermonsterexamine", "displayMonster", data));
+						}
+					});
+					menu.add(betterMonsterExamineMenu);
+
+					dropPanel.addMouseListener(new MouseAdapter()
+					{
+						@Override
+						public void mouseClicked(MouseEvent e)
+						{
+							if (e.getClickCount() == 1)
+							{
+								menu.show(dropPanel, e.getX(), e.getY());
+							}
+						}
+					});
+
+					dropType.addMouseListener(new MouseAdapter()
+					{
+						@Override
+						public void mouseClicked(MouseEvent e)
+						{
+							if (e.getClickCount() == 1)
+							{
+								menu.show(dropType, e.getX(), e.getY());
+							}
+						}
+					});
+
+					rarityLabel.addMouseListener(new MouseAdapter()
+					{
+						@Override
+						public void mouseClicked(MouseEvent e)
+						{
+							if (e.getClickCount() == 1)
+							{
+								menu.show(rarityLabel, e.getX(), e.getY());
+							}
+						}
+					});
+				}
+
+				container.add(dropPanel);
+				add(container);
+			});
+		
+	}
+
+	private String buildQuantityString(NERDropSource dropSource)
+	{
+		if (dropSource.getQuantityLow() == dropSource.getQuantityHigh())
+		{
+			return "x" + dropSource.getQuantityLow();
+		}
+
+		return "x" + dropSource.getQuantityLow() + "-" + dropSource.getQuantityHigh();
+	}
+
+	private void addTooltip(JLabel toUnderline, String tooltip)
+	{
+		// add underline to text
+		Font f = toUnderline.getFont();
+		Map<TextAttribute, Object> attributes = new HashMap<>(f.getAttributes());
+		attributes.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_LOW_DOTTED);
+		toUnderline.setFont(f.deriveFont(attributes));
+		toUnderline.setText(toUnderline.getText());
+
+		// create hover tooltip
+		toUnderline.setToolTipText(tooltip);
+	}
+
+}
