@@ -50,7 +50,7 @@ public interface ItemAtlasConfig extends Config
 	@ConfigItem(
 		keyName = "clogLookupMode",
 		name = "CLog Lookup",
-		description = "Whether to show a NEr Lookup option on collection log items, and when",
+		description = "Whether to show an Atlas Lookup option on collection log items, and when",
 		position = 3
 	)
 	default MenuLookupMode clogLookupMode() {
