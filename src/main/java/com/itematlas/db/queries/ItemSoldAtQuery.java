@@ -45,6 +45,7 @@ public class ItemSoldAtQuery extends ModeledQuery<AtlasShop>
 			rs.getString("LOCATION"),
 			rs.getBoolean("IS_MEMBERS"),
 			rs.getString("COORDS"),
+			rs.getString("TILES"),
 			rs.getString("PLANE"),
 			rs.getString("MAP_ID"),
 			new ArrayList<>()

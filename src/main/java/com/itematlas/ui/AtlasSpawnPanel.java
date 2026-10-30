@@ -62,7 +62,7 @@ public class AtlasSpawnPanel extends JPanel
 				playerWP = null;
 			}
 
-			Set<WorldPoint> spawnTiles = new HashSet<>(AtlasSourceRouteUtil.spawnTiles(spawn));
+			Set<WorldPoint> spawnTiles = new HashSet<>(AtlasSourceRouteUtil.tilesOrCoords(spawn.getTiles(), spawn.getCoords(), spawn.getPlane()));
 
 			AtlasSourceRouteUtil.Router router = AtlasSourceRouteUtil.findActiveRouter(pluginManager);
 

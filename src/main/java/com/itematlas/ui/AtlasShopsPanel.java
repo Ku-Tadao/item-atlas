@@ -17,8 +17,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.swing.AbstractAction;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
@@ -126,7 +128,6 @@ public class AtlasShopsPanel extends JPanel
 					SwingUtilities.invokeLater(() ->
 						shopPanel.add(new JLabel(finalSellPrice), new GridBagConstraints(1, finalRow, 1, 1, 0.1, 0.0, LINE_END, NONE, NO_INSETS, 4, 4)));
 
-					WorldPoint shopWP;
 					WorldPoint playerWP;
 
 					if (client.getGameState() == GameState.LOGGED_IN) {
@@ -136,12 +137,13 @@ public class AtlasShopsPanel extends JPanel
 						playerWP = null;
 					}
 
-					shopWP = AtlasSourceRouteUtil.parseWorldPoint(shop.getCoords(), shop.getPlane());
+					// the route plugin picks the nearest of the shop's map points
+					Set<WorldPoint> shopTiles = new HashSet<>(AtlasSourceRouteUtil.tilesOrCoords(shop.getTiles(), shop.getCoords(), shop.getPlane()));
 					AtlasSourceRouteUtil.Router router = AtlasSourceRouteUtil.findActiveRouter(pluginManager);
 
 					JPopupMenu menu = new JPopupMenu("Menu");
 
-					if (shopWP != null && playerWP != null && router != null) {
+					if (!shopTiles.isEmpty() && playerWP != null && router != null) {
 
 						JMenuItem shortestPathMenu = new JMenuItem(new AbstractAction(router.pluginName)
 						{
@@ -150,7 +152,7 @@ public class AtlasShopsPanel extends JPanel
 							{
 								Map<String, Object> data = new HashMap<>();
 								data.put("start", playerWP);
-								data.put("target", shopWP);
+								data.put("target", shopTiles);
 								router.route(eventBus, data);
 							}
 						});

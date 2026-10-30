@@ -321,11 +321,7 @@ class AtlasSourcesPanel extends JPanel
 					continue;
 				}
 
-				WorldPoint target = AtlasSourceRouteUtil.parseWorldPoint(shop.getCoords(), shop.getPlane());
-				if (target != null)
-				{
-					targets.add(target);
-				}
+				targets.addAll(AtlasSourceRouteUtil.tilesOrCoords(shop.getTiles(), shop.getCoords(), shop.getPlane()));
 			}
 		}
 
@@ -338,7 +334,7 @@ class AtlasSourcesPanel extends JPanel
 					continue;
 				}
 
-				targets.addAll(AtlasSourceRouteUtil.spawnTiles(spawn));
+				targets.addAll(AtlasSourceRouteUtil.tilesOrCoords(spawn.getTiles(), spawn.getCoords(), spawn.getPlane()));
 			}
 		}
 

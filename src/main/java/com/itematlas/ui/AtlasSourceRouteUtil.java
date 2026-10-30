@@ -1,6 +1,5 @@
 package com.itematlas.ui;
 
-import com.itematlas.types.AtlasSpawnItem;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -99,14 +98,14 @@ final class AtlasSourceRouteUtil
 	}
 
 	/**
-	 * Every tile of a spawn, or its single listed coordinate for data without tiles.
+	 * Every listed tile, or the single coordinate for data without tiles.
 	 */
-	static List<WorldPoint> spawnTiles(AtlasSpawnItem spawn)
+	static List<WorldPoint> tilesOrCoords(@Nullable String tileList, @Nullable String coords, @Nullable String plane)
 	{
-		List<WorldPoint> tiles = parseTiles(spawn.getTiles());
+		List<WorldPoint> tiles = parseTiles(tileList);
 		if (tiles.isEmpty())
 		{
-			WorldPoint point = parseWorldPoint(spawn.getCoords(), spawn.getPlane());
+			WorldPoint point = parseWorldPoint(coords, plane);
 			if (point != null)
 			{
 				tiles.add(point);
