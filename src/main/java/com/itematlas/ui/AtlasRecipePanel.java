@@ -39,6 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ItemComposition;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.game.ItemManager;
+import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.AsyncBufferedImage;
@@ -154,7 +155,17 @@ public class AtlasRecipePanel extends JPanel
 		{
 			String iconPath = "/skill_icons/" + skill.getName().toLowerCase() + ".png";
 
-			skillsPanel.add(new JLabel(new ImageIcon(ImageUtil.loadImageResource(getClass(), iconPath))), new GridBagConstraints(0, skillsRow, 1, 1, 0.0, 0.0, CENTER, NONE, NO_INSETS, 4, 4));
+			// the icons live in the client jar, which a sideloaded plugin's own class can't see
+			JLabel skillIcon = new JLabel();
+			try
+			{
+				skillIcon.setIcon(new ImageIcon(ImageUtil.loadImageResource(SkillIconManager.class, iconPath)));
+			}
+			catch (IllegalArgumentException e)
+			{
+				log.debug("No skill icon for {}", skill.getName());
+			}
+			skillsPanel.add(skillIcon, new GridBagConstraints(0, skillsRow, 1, 1, 0.0, 0.0, CENTER, NONE, NO_INSETS, 4, 4));
 			skillsPanel.add(new JLabel(skill.getName()), new GridBagConstraints(1, skillsRow, 1, 1, 1.0, 0.0, LINE_START, NONE, NO_INSETS, 4, 4));
 			skillsPanel.add(new JLabel("<html><body style=\"text-align:right\">Lv" + skill.getLevel() + "</body></html>"), new GridBagConstraints(2, skillsRow, 1, 1, 0.2, 0.0, LINE_END, NONE, NO_INSETS, 4, 4));
 			skillsPanel.add(new JLabel(skill.getExperience() + "xp"), new GridBagConstraints(3, skillsRow++, 1, 1, 0.0, 0.0, LINE_END, NONE, NO_INSETS, 4, 4));
