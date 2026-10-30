@@ -5,6 +5,7 @@ import com.itematlas.ItemAtlasPlugin;
 import com.itematlas.SourceSectionType;
 import com.itematlas.config.DefaultOpenSources;
 import com.itematlas.db.H2DataProvider;
+import com.itematlas.db.queries.DropSourceLocationsQuery;
 import com.itematlas.db.queries.ItemDropSourcesQuery;
 import com.itematlas.db.queries.ItemProducedByQuery;
 import com.itematlas.db.queries.ItemSoldAtQuery;
@@ -13,6 +14,7 @@ import com.itematlas.types.AtlasDropItem;
 import com.itematlas.types.AtlasDropSource;
 import com.itematlas.types.AtlasProductionRecipe;
 import com.itematlas.types.AtlasShop;
+import com.itematlas.types.AtlasSourceLocation;
 import com.itematlas.types.AtlasSpawnItem;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -109,18 +111,19 @@ class AtlasSourcesPanel extends JPanel
 			dataProvider.executeMany(new ItemDropSourcesQuery(atlasItem.getInfoItem().getItemID()), dropSources ->
 				dataProvider.executeMany(new ItemSoldAtQuery(atlasItem.getInfoItem().getItemID()), shops ->
 					dataProvider.executeMany(new ItemSpawnQuery(atlasItem.getInfoItem().getItemID()), spawns ->
-						SwingUtilities.invokeLater(() ->
-							buildPanel(recipes, dropSources, shops, spawns))))));
+						dataProvider.executeMany(new DropSourceLocationsQuery(atlasItem.getInfoItem().getItemID()), dropLocations ->
+							SwingUtilities.invokeLater(() ->
+								buildPanel(recipes, dropSources, shops, spawns, dropLocations)))))));
 	}
 
-	private void buildPanel(List<AtlasProductionRecipe> recipes, List<AtlasDropSource> dropSources, List<AtlasShop> shops, List<AtlasSpawnItem> spawns)
+	private void buildPanel(List<AtlasProductionRecipe> recipes, List<AtlasDropSource> dropSources, List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations)
 	{
 		GridBagConstraints containerGbc = new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
 		JPanel recipeSection = createSection(SourceSectionType.RECIPES, recipes, dropSources, shops, spawns);
 		JPanel container = new JPanel(new GridBagLayout());
-		if (config.routeShopSources() || config.routeGroundSpawnSources())
+		if (config.routeShopSources() || config.routeGroundSpawnSources() || config.routeDropSources())
 		{
-			container.add(createRouteButton(shops, spawns), new GridBagConstraints(0, 0, 1, 1, 1.0, 0.0, GridBagConstraints.LINE_START, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 8, 0), 0, 0));
+			container.add(createRouteButton(shops, spawns, dropLocations), new GridBagConstraints(0, 0, 1, 1, 1.0, 0.0, GridBagConstraints.LINE_START, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 8, 0), 0, 0));
 			containerGbc.gridy++;
 		}
 
@@ -251,18 +254,18 @@ class AtlasSourcesPanel extends JPanel
 		return section;
 	}
 
-	private JButton createRouteButton(List<AtlasShop> shops, List<AtlasSpawnItem> spawns)
+	private JButton createRouteButton(List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations)
 	{
-		JButton routeButton = new JButton("Route to shop/spawn");
+		JButton routeButton = new JButton("Route to closest source");
 		routeButton.setPreferredSize(new Dimension(220, 30));
 		routeButton.setEnabled(false);
 		routeButton.setToolTipText("Checking route availability...");
-		routeButton.addActionListener(event -> updateRouteButton(routeButton, shops, spawns, true));
-		updateRouteButton(routeButton, shops, spawns, false);
+		routeButton.addActionListener(event -> updateRouteButton(routeButton, shops, spawns, dropLocations, true));
+		updateRouteButton(routeButton, shops, spawns, dropLocations, false);
 		return routeButton;
 	}
 
-	private void updateRouteButton(JButton routeButton, List<AtlasShop> shops, List<AtlasSpawnItem> spawns, boolean requestRoute)
+	private void updateRouteButton(JButton routeButton, List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations, boolean requestRoute)
 	{
 		if (requestRoute)
 		{
@@ -283,10 +286,10 @@ class AtlasSourcesPanel extends JPanel
 			}
 			else
 			{
-				Set<WorldPoint> targets = buildRouteTargets(shops, spawns);
+				Set<WorldPoint> targets = buildRouteTargets(shops, spawns, dropLocations);
 				if (targets.isEmpty())
 				{
-					tooltip = "No valid enabled shop or ground-spawn locations are available.";
+					tooltip = "No valid enabled shop, ground-spawn or drop locations are available.";
 				}
 				else
 				{
@@ -296,7 +299,7 @@ class AtlasSourcesPanel extends JPanel
 					}
 					tooltip = requestRoute
 						? "Route request sent to " + router.pluginName + ". Stock and access are not guaranteed."
-						: "Ask " + router.pluginName + " to route to an enabled listed shop or ground spawn. Stock and access are not guaranteed.";
+						: "Ask " + router.pluginName + " to route to the closest enabled shop, ground spawn or drop source. Stock and access are not guaranteed.";
 				}
 			}
 
@@ -304,7 +307,7 @@ class AtlasSourcesPanel extends JPanel
 		});
 	}
 
-	private Set<WorldPoint> buildRouteTargets(List<AtlasShop> shops, List<AtlasSpawnItem> spawns)
+	private Set<WorldPoint> buildRouteTargets(List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations)
 	{
 		Set<WorldPoint> targets = new HashSet<>();
 		boolean membersWorld = client.getWorldType().contains(WorldType.MEMBERS);
@@ -335,11 +338,21 @@ class AtlasSourcesPanel extends JPanel
 					continue;
 				}
 
-				WorldPoint target = AtlasSourceRouteUtil.parseWorldPoint(spawn.getCoords(), spawn.getPlane());
-				if (target != null)
+				targets.addAll(AtlasSourceRouteUtil.spawnTiles(spawn));
+			}
+		}
+
+		if (config.routeDropSources())
+		{
+			// ponytail: nearest location wins regardless of drop rate; weigh by rarity if rare drops route badly
+			for (AtlasSourceLocation location : dropLocations)
+			{
+				if (!membersWorld && location.isMembers())
 				{
-					targets.add(target);
+					continue;
 				}
+
+				targets.addAll(AtlasSourceRouteUtil.parseTiles(location.getTiles()));
 			}
 		}
 

@@ -8,7 +8,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -51,7 +53,6 @@ public class AtlasSpawnPanel extends JPanel
 
 		clientThread.invokeLater(() ->
 		{
-			WorldPoint spawnWP;
 			WorldPoint playerWP;
 
 			if (client.getGameState() == GameState.LOGGED_IN) {
@@ -61,12 +62,12 @@ public class AtlasSpawnPanel extends JPanel
 				playerWP = null;
 			}
 
-			spawnWP = AtlasSourceRouteUtil.parseWorldPoint(spawn.getCoords(), spawn.getPlane());
+			Set<WorldPoint> spawnTiles = new HashSet<>(AtlasSourceRouteUtil.spawnTiles(spawn));
 
 			AtlasSourceRouteUtil.Router router = AtlasSourceRouteUtil.findActiveRouter(pluginManager);
 
 			JPopupMenu menu = new JPopupMenu("Menu");
-			if (spawnWP != null && playerWP != null && router != null) {
+			if (!spawnTiles.isEmpty() && playerWP != null && router != null) {
 
 				JMenuItem shortestPathMenu = new JMenuItem(new AbstractAction(router.pluginName)
 				{
@@ -75,7 +76,8 @@ public class AtlasSpawnPanel extends JPanel
 					{
 						Map<String, Object> data = new HashMap<>();
 						data.put("start", playerWP);
-						data.put("target", spawnWP);
+						// the route plugin picks the nearest tile
+						data.put("target", spawnTiles);
 						router.route(eventBus, data);
 					}
 				});

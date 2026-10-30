@@ -117,10 +117,22 @@ public interface ItemAtlasConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "routeDropSources",
+		name = "Route drop sources",
+		description = "Include the locations of monsters and objects that drop the item when routing to an item source",
+		position = 10,
+		section = integrationSection
+	)
+	default boolean routeDropSources()
+	{
+		return true;
+	}
+
+	@ConfigItem(
 		keyName = "bmeNPCLookup",
 		name = "Better Monster Examine",
 		description = "Click NPCs in the Drops section to look them up in Better Monster Examine. This requires the Better Monster Examine plugin to be installed and enabled",
-		position = 10,
+		position = 11,
 		section = integrationSection
 	)
 	default boolean bmeNPCLookup()

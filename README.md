@@ -8,12 +8,12 @@ Item data comes from [Ku-Tadao/runelite-wiki-scraper](https://github.com/Ku-Tada
 
 ## Routing to sources
 
-Right-click a shop or spawn, or use **Route to shop/spawn** on an item's sources, to get directions. Item Atlas works with whichever route plugin you have enabled:
+Right-click a shop or spawn, or use **Route to closest source** on an item's sources, to get directions. Item Atlas works with whichever route plugin you have enabled:
 
 - **GPS**, if it's enabled (preferred, sent on GPS's own channel so it never routes twice)
 - **Shortest Path** otherwise
 
-Routes don't guarantee current shop stock, ground-item availability, or access requirements that aren't in the source data. Drops and recipes are not included in closest-source routing.
+**Route to closest source** covers shops, every ground-spawn tile, and the locations of monsters and objects that drop the item (toggle each in the config). Routes don't guarantee shop stock, ground-item availability, drop rates or access requirements. Recipes are not included.
 
 ## Quest Helper integration
 

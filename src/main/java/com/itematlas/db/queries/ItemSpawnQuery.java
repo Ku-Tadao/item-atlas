@@ -37,6 +37,7 @@ public class ItemSpawnQuery extends ModeledQuery<AtlasSpawnItem>
 				rs.getString("NAME"),
 				rs.getString("VERSION"),
 				rs.getString("COORDS"),
+				rs.getString("TILES"),
 				rs.getString("LOCATION"),
 				rs.getBoolean("IS_MEMBERS"),
 				rs.getString("PLANE"),

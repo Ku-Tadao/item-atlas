@@ -1,6 +1,9 @@
 package com.itematlas.ui;
 
+import com.itematlas.types.AtlasSpawnItem;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
@@ -69,11 +72,57 @@ final class AtlasSourceRouteUtil
 			return null;
 		}
 
+		return toWorldPoint(parts[0], parts[1], plane);
+	}
+
+	/**
+	 * Parses a TILES column ("x,y,plane" separated by ';'), skipping invalid tiles.
+	 */
+	static List<WorldPoint> parseTiles(@Nullable String tiles)
+	{
+		List<WorldPoint> points = new ArrayList<>();
+		if (tiles == null || tiles.isEmpty())
+		{
+			return points;
+		}
+
+		for (String tile : tiles.split(";"))
+		{
+			String[] parts = tile.split(",", -1);
+			WorldPoint point = parts.length == 3 ? toWorldPoint(parts[0], parts[1], parts[2]) : null;
+			if (point != null)
+			{
+				points.add(point);
+			}
+		}
+		return points;
+	}
+
+	/**
+	 * Every tile of a spawn, or its single listed coordinate for data without tiles.
+	 */
+	static List<WorldPoint> spawnTiles(AtlasSpawnItem spawn)
+	{
+		List<WorldPoint> tiles = parseTiles(spawn.getTiles());
+		if (tiles.isEmpty())
+		{
+			WorldPoint point = parseWorldPoint(spawn.getCoords(), spawn.getPlane());
+			if (point != null)
+			{
+				tiles.add(point);
+			}
+		}
+		return tiles;
+	}
+
+	@Nullable
+	private static WorldPoint toWorldPoint(String xs, String ys, String zs)
+	{
 		try
 		{
-			int x = Integer.parseInt(parts[0].trim());
-			int y = Integer.parseInt(parts[1].trim());
-			int z = Integer.parseInt(plane.trim());
+			int x = Integer.parseInt(xs.trim());
+			int y = Integer.parseInt(ys.trim());
+			int z = Integer.parseInt(zs.trim());
 
 			// Jagex packed coordinates use 14 bits for x/y, and RuneLite defines four planes.
 			return x >= 0 && x <= 0x3FFF && y >= 0 && y <= 0x3FFF && z >= 0 && z < Constants.MAX_Z
