@@ -44,7 +44,7 @@ public class AtlasShopsPanel extends JPanel
 
 	private static final Insets NO_INSETS = new Insets(0, 0, 0, 0);
 
-	public AtlasShopsPanel(List<AtlasShop> shops, AtlasItem atlasItem, ItemManager itemManager, ClientThread clientThread, boolean isCurrency, AtlasPanel mainPanel, Client client, EventBus eventBus, PluginManager pluginManager)
+	public AtlasShopsPanel(List<AtlasShop> shops, AtlasItem atlasItem, ItemManager itemManager, ClientThread clientThread, boolean isCurrency, AtlasPanel mainPanel, Client client, EventBus eventBus, PluginManager pluginManager, boolean showMembers)
 	{
 
 		String useName = atlasItem.getInfoItem().getName().length() > atlasItem.getInfoItem().getGroup().length()
@@ -78,10 +78,10 @@ public class AtlasShopsPanel extends JPanel
 				shopPanel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 
 				JLabel shopName = new JLabel();
-				shopName.setText(AtlasSourceRouteUtil.wrap(shop.getName(), shop.isMembers() ? 105 : 125));
+				shopName.setText(AtlasSourceRouteUtil.wrap(shop.getName(), showMembers && shop.isMembers() ? 105 : 125));
 				JLabel location = new JLabel();
 
-				if (shop.isMembers())
+				if (showMembers && shop.isMembers())
 				{
 					AtlasSourceRouteUtil.markMembers(shopName);
 				}

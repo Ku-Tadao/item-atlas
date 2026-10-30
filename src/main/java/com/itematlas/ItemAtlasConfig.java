@@ -87,10 +87,21 @@ public interface ItemAtlasConfig extends Config
 		return Collections.emptySet();
 	}
 
+	@ConfigItem(
+		keyName = "showMembersStar",
+		name = "Members star",
+		description = "Mark members-only shops, spawns and drop locations with a star",
+		position = 7
+	)
+	default boolean showMembersStar()
+	{
+		return false;
+	}
+
 	@ConfigSection(
 		name = "Integrations",
 		description = "Integrations with other Plugins",
-		position = 7
+		position = 8
 	)
 	String integrationSection = "integrationSection";
 
@@ -98,7 +109,7 @@ public interface ItemAtlasConfig extends Config
 		keyName = "routeShopSources",
 		name = "Route shops",
 		description = "Include listed shops when routing to an item source",
-		position = 8,
+		position = 9,
 		section = integrationSection
 	)
 	default boolean routeShopSources()
@@ -110,7 +121,7 @@ public interface ItemAtlasConfig extends Config
 		keyName = "routeGroundSpawnSources",
 		name = "Route ground spawns",
 		description = "Include listed ground spawns when routing to an item source",
-		position = 9,
+		position = 10,
 		section = integrationSection
 	)
 	default boolean routeGroundSpawnSources()
@@ -122,7 +133,7 @@ public interface ItemAtlasConfig extends Config
 		keyName = "routeDropSources",
 		name = "Route drop sources",
 		description = "Include the locations of monsters and objects that drop the item when routing to an item source",
-		position = 10,
+		position = 11,
 		section = integrationSection
 	)
 	default boolean routeDropSources()
@@ -134,7 +145,7 @@ public interface ItemAtlasConfig extends Config
 		keyName = "routeBestDropRate",
 		name = "Route best drop rate",
 		description = "When routing to drop sources, only consider the monsters and objects with the best drop rate instead of every one",
-		position = 11,
+		position = 12,
 		section = integrationSection
 	)
 	default boolean routeBestDropRate()
@@ -146,7 +157,7 @@ public interface ItemAtlasConfig extends Config
 		keyName = "bmeNPCLookup",
 		name = "Better Monster Examine",
 		description = "Click NPCs in the Drops section to look them up in Better Monster Examine. This requires the Better Monster Examine plugin to be installed and enabled",
-		position = 12,
+		position = 13,
 		section = integrationSection
 	)
 	default boolean bmeNPCLookup()

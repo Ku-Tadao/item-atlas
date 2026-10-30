@@ -197,14 +197,14 @@ class AtlasSourcesPanel extends JPanel
 			case SHOPS:
 				if (!shops.isEmpty()) {
 					count = " (" + Math.min(shops.stream().mapToInt(shop -> shop.getItems().size()).sum(), AtlasPanel.MAX_ENTRIES) + ")";
-					sectionItems.add(new AtlasShopsPanel(shops, atlasItem, itemManager, clientThread, false, mainPanel, client, eventBus, pluginManager));
+					sectionItems.add(new AtlasShopsPanel(shops, atlasItem, itemManager, clientThread, false, mainPanel, client, eventBus, pluginManager, config.showMembersStar()));
 				}
 				break;
 
 			case SPAWNS:
 				count = " (" + spawns.size() + ")";
 				spawns.forEach((spawnItem) ->
-						sectionItems.add(new AtlasSpawnPanel(spawnItem, clientThread, client, eventBus, pluginManager)));
+						sectionItems.add(new AtlasSpawnPanel(spawnItem, clientThread, client, eventBus, pluginManager, config.showMembersStar())));
 //					.limit(MAX_ENTRIES)
 
 				break;

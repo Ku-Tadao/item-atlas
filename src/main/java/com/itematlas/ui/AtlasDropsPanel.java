@@ -197,7 +197,7 @@ public class AtlasDropsPanel extends JPanel
 						dropPanel.add(needsLabel(requiredItem, locations.get(0).getRequiredItemId(), clientThread, itemManager, itemOwnership, mainPanel), gbc);
 					}
 
-					JPanel locationList = createLocationList(locations, clientThread, eventBus, pluginManager, itemOwnership);
+					JPanel locationList = createLocationList(locations, clientThread, eventBus, pluginManager, itemOwnership, config.showMembersStar());
 					int count = locationList.getComponentCount();
 					gbc.fill = GridBagConstraints.HORIZONTAL;
 					// a single location shows as is; only a list is worth collapsing
@@ -358,7 +358,7 @@ public class AtlasDropsPanel extends JPanel
 	/**
 	 * One row per named location of a mob; right-click a row to route to its nearest tile.
 	 */
-	private static JPanel createLocationList(List<AtlasSourceLocation> locations, ClientThread clientThread, EventBus eventBus, PluginManager pluginManager, ItemOwnership itemOwnership)
+	private static JPanel createLocationList(List<AtlasSourceLocation> locations, ClientThread clientThread, EventBus eventBus, PluginManager pluginManager, ItemOwnership itemOwnership, boolean showMembers)
 	{
 		// the wiki can list one location on several lines, so merge rows by name
 		Map<String, Set<WorldPoint>> tilesByName = new LinkedHashMap<>();
@@ -379,7 +379,7 @@ public class AtlasDropsPanel extends JPanel
 			JLabel row = new JLabel(name);
 			row.setFont(FontManager.getRunescapeSmallFont());
 			row.setBorder(new EmptyBorder(1, 8, 1, 0));
-			if (membersByName.get(name))
+			if (showMembers && membersByName.get(name))
 			{
 				AtlasSourceRouteUtil.markMembers(row);
 			}

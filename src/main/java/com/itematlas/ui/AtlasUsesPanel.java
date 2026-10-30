@@ -205,7 +205,7 @@ class AtlasUsesPanel extends JPanel
 				if (!shops.isEmpty())
 				{
 					count = " (" + Math.min(shops.stream().mapToInt(shop -> shop.getItems().size()).sum(), AtlasPanel.MAX_ENTRIES) + ")";
-					sectionItems.add(new AtlasShopsPanel(shops, atlasItem, itemManager, clientThread, true, mainPanel, client, eventBus, pluginManager));
+					sectionItems.add(new AtlasShopsPanel(shops, atlasItem, itemManager, clientThread, true, mainPanel, client, eventBus, pluginManager, config.showMembersStar()));
 				}
 				break;
 		}

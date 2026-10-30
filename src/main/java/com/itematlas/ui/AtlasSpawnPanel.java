@@ -35,15 +35,19 @@ public class AtlasSpawnPanel extends JPanel
 	
 	private static final BufferedImage F2P_ICON = ImageUtil.loadImageResource(AtlasSpawnPanel.class, "free_to_play.png");
 	
-	public AtlasSpawnPanel(AtlasSpawnItem spawn, ClientThread clientThread, Client client, EventBus eventBus, PluginManager pluginManager)
+	public AtlasSpawnPanel(AtlasSpawnItem spawn, ClientThread clientThread, Client client, EventBus eventBus, PluginManager pluginManager, boolean showMembers)
 	{
 		setMaximumSize(new Dimension(PluginPanel.PANEL_WIDTH, 200));
 		setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		setBorder(new EmptyBorder(7, 7, 6, 7));
 		setLayout(new BorderLayout());
 
-		JLabel membersLabel = new JLabel(spawn.isMembers() ? AtlasSourceRouteUtil.MEMBERS_ICON : new ImageIcon(F2P_ICON));
-		membersLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 5));
+		JLabel membersLabel = new JLabel();
+		if (showMembers)
+		{
+			membersLabel.setIcon(spawn.isMembers() ? AtlasSourceRouteUtil.MEMBERS_ICON : new ImageIcon(F2P_ICON));
+			membersLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 5));
+		}
 		add(membersLabel, BorderLayout.WEST);
 		JLabel location = new JLabel(AtlasSourceRouteUtil.wrap(spawn.getLocation(), 150));
 		add(location, BorderLayout.CENTER);
