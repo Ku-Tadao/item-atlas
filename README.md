@@ -1,6 +1,6 @@
 # Item Atlas
 
-Where to get every item in Old School RuneScape and what it's used for: shops, drops, ground spawns, recipes and uses, sourced from the OSRS Wiki.
+A RuneLite plugin that shows where to get every item in Old School RuneScape and what it's used for: shops, drops, ground spawns, recipes and uses, sourced from the OSRS Wiki.
 
 <p align="center">
   <img src="docs/images/brag.webp" alt="Item Atlas: searching for an item, its sources and uses, and routing to the closest source" width="720">
@@ -11,10 +11,6 @@ Where to get every item in Old School RuneScape and what it's used for: shops, d
   <img src="docs/images/sources.png" alt="Sources of a bronze bar, with drops expanded" width="220">
   <img src="docs/images/uses.png" alt="Uses of a bronze bar, with a recipe card expanded" width="220">
 </p>
-
-Item Atlas is a fork of [Not Enough Runes](https://github.com/Hannah-GBS/notenoughrunes) by Hannah_GBS and LlemonDuck (BSD 2-Clause, see [LICENSE](LICENSE)).
-
-Item data comes from [Ku-Tadao/runelite-wiki-scraper](https://github.com/Ku-Tadao/runelite-wiki-scraper), a fork of Hannah_GBS's scraper that rebuilds `data.sqlite` from the OSRS Wiki every Friday.
 
 ## What it shows
 
@@ -60,4 +56,8 @@ Routes don't guarantee shop stock, ground-item availability, drop rates or acces
 
 ## Quest Helper integration
 
-Quest Helper's item lookups still reach Item Atlas, since it keeps listening on Not Enough Runes' message channel.
+Quest Helper's item lookups open in Item Atlas.
+
+## Credits
+
+Item Atlas grew out of [Not Enough Runes](https://github.com/Hannah-GBS/notenoughrunes) by Hannah_GBS and LlemonDuck, and keeps its BSD 2-Clause license ([LICENSE](LICENSE)). Its item data comes from [runelite-wiki-scraper](https://github.com/Ku-Tadao/runelite-wiki-scraper), which rebuilds `data.sqlite` from the OSRS Wiki every Friday.
