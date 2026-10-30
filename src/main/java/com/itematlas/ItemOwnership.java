@@ -15,6 +15,7 @@ import net.runelite.api.Client;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.gameval.InventoryID;
+import net.runelite.api.gameval.VarbitID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ItemManager;
 
@@ -36,7 +37,8 @@ public class ItemOwnership
 		BANK("in bank"),
 		GROUP_STORAGE("in group storage"),
 		MISSING("not owned"),
-		UNKNOWN("bank not checked yet");
+		UNKNOWN("bank not checked yet"),
+		GROUP_UNKNOWN("group storage not checked yet");
 
 		public final String text;
 	}
@@ -79,13 +81,15 @@ public class ItemOwnership
 		return status(carries(InventoryID.INV, itemId) || carries(InventoryID.WORN, itemId),
 			configManager.getRSProfileConfiguration(ItemAtlasConfig.GROUP, BANK_KEY),
 			configManager.getRSProfileConfiguration(ItemAtlasConfig.GROUP, GROUP_STORAGE_KEY),
+			// 4-6: group, hardcore group and unranked group ironman
+			client.getVarbitValue(VarbitID.IRONMAN) >= 4,
 			itemId);
 	}
 
 	/**
 	 * {@code bank} and {@code groupStorage} are the saved snapshots, null when never opened.
 	 */
-	static Status status(boolean carried, String bank, String groupStorage, int itemId)
+	static Status status(boolean carried, String bank, String groupStorage, boolean groupIronman, int itemId)
 	{
 		if (carried)
 		{
@@ -99,7 +103,11 @@ public class ItemOwnership
 		{
 			return Status.GROUP_STORAGE;
 		}
-		return bank == null ? Status.UNKNOWN : Status.MISSING;
+		if (bank == null)
+		{
+			return Status.UNKNOWN;
+		}
+		return groupIronman && groupStorage == null ? Status.GROUP_UNKNOWN : Status.MISSING;
 	}
 
 	/**
