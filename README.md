@@ -3,6 +3,10 @@
 Where to get every item in Old School RuneScape and what it's used for: shops, drops, ground spawns, recipes and uses, sourced from the OSRS Wiki.
 
 <p align="center">
+  <img src="docs/images/brag.webp" alt="Item Atlas: searching for an item, its sources and uses, and routing to the closest source" width="720">
+</p>
+
+<p align="center">
   <img src="docs/images/search.png" alt="Searching for bronze items" width="240">
   <img src="docs/images/sources.png" alt="Sources of a bronze bar, with drops expanded" width="240">
   <img src="docs/images/uses.png" alt="Uses of a bronze bar, with a recipe card expanded" width="240">
