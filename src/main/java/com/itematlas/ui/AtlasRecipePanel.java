@@ -18,10 +18,12 @@ import static java.awt.GridBagConstraints.LINE_END;
 import static java.awt.GridBagConstraints.LINE_START;
 import static java.awt.GridBagConstraints.NONE;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -38,6 +40,7 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.AsyncBufferedImage;
 import net.runelite.client.util.ImageUtil;
@@ -155,48 +158,60 @@ public class AtlasRecipePanel extends JPanel
 
 		add(skillsPanel, new GridBagConstraints(0, row++, 4, 1, 0.0, 0.0, LINE_START, BOTH, NO_INSETS, 4, 4));
 
-		if (recipe.getFacilities() != null)
+		if (recipe.getFacilities() != null || recipe.getTools() != null)
 		{
-			// several facilities are alternatives, e.g. "Blood Altar, Blood Altar (Kourend)"
-			add(new JLabel("Facility"), new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, CENTER, NONE, NO_INSETS, 4, 4));
-			for (String facility : recipe.getFacilities().split(", "))
-			{
-				JLabel facilityLabel = new JLabel(facility);
-				facilityLabel.setToolTipText(facility);
-				facilityLabel.setMaximumSize(new Dimension(0, 30));
-				facilityLabel.setPreferredSize(new Dimension(0, 30));
-				if (facilityImages.containsKey(facility))
-				{
-					facilityLabel.setIcon(new ImageIcon(facilityImages.get(facility)));
-				}
-				add(facilityLabel, new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, LINE_START, BOTH, NO_INSETS, 4, 4));
-			}
-		}
+			// one compact strip of facility and tool icons, names on hover;
+			// anything without an icon (spells, unpictured facilities) goes on a text line below
+			JPanel needsIcons = new JPanel(new GridLayout(0, 5, 2, 2));
+			needsIcons.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+			JLabel needsText = new JLabel();
+			needsText.setFont(FontManager.getRunescapeSmallFont());
+			needsText.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+			List<String> textNeeds = new ArrayList<>();
+			add(needsIcons, new GridBagConstraints(0, row++, 4, 1, 0.0, 0.0, LINE_START, NONE, new Insets(2, 0, 2, 0), 0, 0));
+			add(needsText, new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, LINE_START, BOTH, NO_INSETS, 0, 0));
 
-		if (recipe.getTools() != null)
-		{
-			add(new JLabel("Tools"), new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, CENTER, NONE, NO_INSETS, 4, 4));
-			for (String tool : recipe.getTools().split(", "))
+			if (recipe.getFacilities() != null)
 			{
-				JLabel toolLabel = new JLabel(tool);
-				toolLabel.setToolTipText(tool);
-				toolLabel.setMaximumSize(new Dimension(0, 30));
-				toolLabel.setPreferredSize(new Dimension(0, 30));
-				add(toolLabel, new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, LINE_START, BOTH, NO_INSETS, 4, 4));
-
-				// spells like "Magic Imbue" aren't items and stay plain text
-				String itemName = tool.replace('_', ' ').replaceAll(" \\(.*\\)$", "");
-				dataProvider.executeSingle(new ItemByNameQuery(itemName), toolItem ->
+				// several facilities are alternatives, e.g. "Blood Altar, Blood Altar (Kourend)"
+				for (String facility : recipe.getFacilities().split(", "))
 				{
-					if (toolItem != null)
+					if (facilityImages.containsKey(facility))
 					{
-						SwingUtilities.invokeLater(() ->
-						{
-							setItemDetails(toolLabel, toolItem.getItemID(), tool);
-							addMouseAdapter(toolLabel, toolItem.getItemID(), atlasInfoItem.getItemID());
-						});
+						needsIcons.add(needsIcon(new ImageIcon(facilityImages.get(facility)), "Facility: " + facility));
 					}
-				});
+					else
+					{
+						addNeedsText(needsText, textNeeds, facility);
+					}
+				}
+			}
+
+			if (recipe.getTools() != null)
+			{
+				for (String tool : recipe.getTools().split(", "))
+				{
+					String itemName = tool.replace('_', ' ').replaceAll(" \\(.*\\)$", "");
+					dataProvider.executeSingle(new ItemByNameQuery(itemName), toolItem ->
+						clientThread.invokeLater(() ->
+						{
+							AsyncBufferedImage image = toolItem == null ? null : itemManager.getImage(itemManager.canonicalize(toolItem.getItemID()));
+							SwingUtilities.invokeLater(() ->
+							{
+								if (image == null)
+								{
+									addNeedsText(needsText, textNeeds, tool);
+									return;
+								}
+
+								JLabel toolIcon = needsIcon(null, "Tool: " + tool);
+								image.addTo(toolIcon);
+								addMouseAdapter(toolIcon, toolItem.getItemID(), atlasInfoItem.getItemID());
+								needsIcons.add(toolIcon);
+								needsIcons.revalidate();
+							});
+						}));
+				}
 			}
 		}
 
@@ -240,6 +255,21 @@ public class AtlasRecipePanel extends JPanel
 			String tooltipText = recipe.getOutputQuantityNote().replaceAll("[\\[\\]]|<[^>]*>", "");
 			quantityLabel.setToolTipText(String.format("<html><p width=\"%d\">%s</p></html>", 200, tooltipText));
 		}
+	}
+
+	private static JLabel needsIcon(ImageIcon icon, String tooltip)
+	{
+		JLabel label = new JLabel(icon);
+		label.setPreferredSize(new Dimension(36, 32));
+		label.setToolTipText(tooltip);
+		return label;
+	}
+
+	private void addNeedsText(JLabel needsText, List<String> textNeeds, String need)
+	{
+		textNeeds.add(need);
+		needsText.setText("<html>Needs: " + String.join(", ", textNeeds) + "</html>");
+		needsText.revalidate();
 	}
 
 	private void setItemDetails(JLabel label, int itemId, String itemName)
