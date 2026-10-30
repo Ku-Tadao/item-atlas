@@ -17,4 +17,7 @@ public class AtlasSourceLocation
 	// the key a chest needs, or null; its item ID is 0 when the name matches no item
 	private final String requiredItem;
 	private final int requiredItemId;
+
+	// see LocationRequirements; null when the wiki notes none
+	private final String requirements;
 }

@@ -4,6 +4,7 @@ import com.itematlas.types.AtlasSourceLocation;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -92,19 +93,40 @@ public class ItemOwnership
 	}
 
 	/**
-	 * Whether a location can be looted: true unless it needs an item the player is known not to own.
+	 * Whether a location can be looted: true unless it needs an item the player is known not to own,
+	 * or a quest or skill level they don't have.
 	 */
 	public boolean canLoot(AtlasSourceLocation location)
 	{
-		return location.getRequiredItemId() <= 0 || status(location.getRequiredItemId()) != Status.MISSING;
+		return (location.getRequiredItemId() <= 0 || status(location.getRequiredItemId()) != Status.MISSING)
+			&& unmetRequirements(location).isEmpty();
+	}
+
+	public List<String> unmetRequirements(AtlasSourceLocation location)
+	{
+		return LocationRequirements.unmet(client, location.getRequirements());
 	}
 
 	/**
 	 * The route plugin's header label for these locations; when any needs an item, it names it
-	 * and says so in chat too, since Shortest Path shows no label. {@code otherTargets}: the route
-	 * also goes to targets that are not these locations (shops, ground spawns).
+	 * and says so in chat too, since Shortest Path shows no label.
 	 */
 	public String routeLabel(Collection<AtlasSourceLocation> locations, boolean otherTargets)
+	{
+		String needs = routeNeeds(locations, otherTargets);
+		if (needs.isEmpty())
+		{
+			return "Item Atlas";
+		}
+		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Item Atlas: this route " + needs + ".", null);
+		return "Item Atlas · " + needs;
+	}
+
+	/**
+	 * "may need Muddy key (in bank)", or empty when none of these locations needs an item.
+	 * {@code otherTargets}: the route also goes to targets that are not these locations (shops, ground spawns).
+	 */
+	public String routeNeeds(Collection<AtlasSourceLocation> locations, boolean otherTargets)
 	{
 		Map<String, Status> needs = new LinkedHashMap<>();
 		for (AtlasSourceLocation location : locations)
@@ -116,7 +138,7 @@ public class ItemOwnership
 		}
 		if (needs.isEmpty())
 		{
-			return "Item Atlas";
+			return "";
 		}
 
 		String note = needs.entrySet().stream()
@@ -124,8 +146,7 @@ public class ItemOwnership
 			.collect(Collectors.joining(", "));
 		// several targets: the route plugin picks the nearest, which may not be the one with the lock
 		String verb = !otherTargets && locations.stream().allMatch(location -> location.getRequiredItem() != null) ? "needs " : "may need ";
-		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Item Atlas: this route " + verb + note + ".", null);
-		return "Item Atlas · " + verb + note;
+		return verb + note;
 	}
 
 	private boolean carries(int containerId, int itemId)

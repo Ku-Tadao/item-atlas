@@ -38,7 +38,8 @@ public class DropSourceLocationsQuery extends ModeledQuery<AtlasSourceLocation>
 				rs.getBoolean("IS_MEMBERS"),
 				rs.getString("TILES"),
 				rs.getString("REQUIRED_ITEM"),
-				rs.getInt("REQUIRED_ITEM_ID")
+				rs.getInt("REQUIRED_ITEM_ID"),
+				rs.getString("REQUIREMENTS")
 			);
 		}
 		finally

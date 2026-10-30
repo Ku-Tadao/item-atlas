@@ -3,6 +3,7 @@ package com.itematlas.ui;
 import com.itematlas.ItemAtlasConfig;
 import com.itematlas.ItemAtlasPlugin;
 import com.itematlas.ItemOwnership;
+import com.itematlas.LocationRequirements;
 import com.itematlas.RarityParser;
 import com.itematlas.SourceSectionType;
 import com.itematlas.config.DefaultOpenSources;
@@ -183,7 +184,7 @@ class AtlasSourcesPanel extends JPanel
 			case DROPS:
 				if (!dropSources.isEmpty()) {
 					Map<String, List<AtlasSourceLocation>> locationsBySource = dropLocations.stream().collect(Collectors.groupingBy(AtlasSourceLocation::getSource));
-					sectionItems.add(new AtlasDropsPanel(new AtlasDropItem(atlasItem.getInfoItem().getName(), atlasItem.getInfoItem().getVersion(), dropSources), locationsBySource, clientThread, eventBus, pluginManager, config, itemOwnership));
+					sectionItems.add(new AtlasDropsPanel(new AtlasDropItem(atlasItem.getInfoItem().getName(), atlasItem.getInfoItem().getVersion(), dropSources), locationsBySource, clientThread, eventBus, pluginManager, config, itemOwnership, mainPanel));
 				}
 				break;
 
@@ -316,17 +317,19 @@ class AtlasSourcesPanel extends JPanel
 				}
 				else
 				{
+					boolean otherTargets = !routedDrops.stream()
+						.flatMap(location -> AtlasSourceRouteUtil.parseTiles(location.getTiles()).stream())
+						.collect(Collectors.toSet())
+						.containsAll(targets);
 					if (requestRoute)
 					{
-						Set<WorldPoint> dropTiles = routedDrops.stream()
-							.flatMap(location -> AtlasSourceRouteUtil.parseTiles(location.getTiles()).stream())
-							.collect(Collectors.toSet());
 						router.route(clientThread, eventBus, Map.of("target", targets,
-							"source", itemOwnership.routeLabel(routedDrops, !dropTiles.containsAll(targets))));
+							"source", itemOwnership.routeLabel(routedDrops, otherTargets)));
 					}
 					tooltip = requestRoute
 						? "Route request sent to " + router.pluginName + ". Stock and access are not guaranteed."
 						: "Ask " + router.pluginName + " to route to the closest enabled shop, ground spawn or drop source. Stock and access are not guaranteed.";
+					tooltip = routeTooltip(tooltip, itemOwnership.routeNeeds(routedDrops, otherTargets), routedDrops);
 				}
 			}
 
@@ -387,6 +390,28 @@ class AtlasSourcesPanel extends JPanel
 		}
 
 		return targets;
+	}
+
+	/**
+	 * Adds what the routed drop locations need: a key, and the wiki's access notes (a Slayer task, a diary).
+	 */
+	private static String routeTooltip(String tooltip, String needs, List<AtlasSourceLocation> routedDrops)
+	{
+		List<String> notes = routedDrops.stream()
+			.flatMap(location -> LocationRequirements.notes(location.getRequirements()).stream())
+			.distinct()
+			.collect(Collectors.toList());
+		if (needs.isEmpty() && notes.isEmpty())
+		{
+			return tooltip;
+		}
+		StringBuilder html = new StringBuilder("<html>").append(AtlasSourceRouteUtil.html(tooltip));
+		if (!needs.isEmpty())
+		{
+			html.append("<br>This route ").append(AtlasSourceRouteUtil.html(needs)).append('.');
+		}
+		notes.forEach(note -> html.append("<br>").append(AtlasSourceRouteUtil.html(note)));
+		return html.append("</html>").toString();
 	}
 
 	private static boolean hasKnownZeroStock(AtlasShop shop)

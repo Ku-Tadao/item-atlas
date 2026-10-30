@@ -2,6 +2,7 @@ package com.itematlas.ui;
 
 import com.itematlas.ItemAtlasConfig;
 import com.itematlas.ItemOwnership;
+import com.itematlas.LocationRequirements;
 import com.itematlas.RarityParser;
 import com.itematlas.types.AtlasDropItem;
 import com.itematlas.types.AtlasDropSource;
@@ -9,6 +10,7 @@ import com.itematlas.types.AtlasSourceLocation;
 import static com.itematlas.ui.AtlasPanel.MAX_ENTRIES;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -104,7 +106,7 @@ public class AtlasDropsPanel extends JPanel
 		}
 	));
 
-	public AtlasDropsPanel(AtlasDropItem dropItem, Map<String, List<AtlasSourceLocation>> locationsBySource, ClientThread clientThread, EventBus eventBus, PluginManager pluginManager, ItemAtlasConfig config, ItemOwnership itemOwnership)
+	public AtlasDropsPanel(AtlasDropItem dropItem, Map<String, List<AtlasSourceLocation>> locationsBySource, ClientThread clientThread, EventBus eventBus, PluginManager pluginManager, ItemAtlasConfig config, ItemOwnership itemOwnership, AtlasPanel mainPanel)
 	{
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -178,7 +180,7 @@ public class AtlasDropsPanel extends JPanel
 					if (requiredItem != null)
 					{
 						gbc.gridy++;
-						dropPanel.add(needsLabel(requiredItem, locations.get(0).getRequiredItemId(), clientThread, itemOwnership), gbc);
+						dropPanel.add(needsLabel(requiredItem, locations.get(0).getRequiredItemId(), clientThread, itemOwnership, mainPanel), gbc);
 					}
 
 					JPanel locationList = createLocationList(locations, clientThread, eventBus, pluginManager, itemOwnership);
@@ -274,13 +276,27 @@ public class AtlasDropsPanel extends JPanel
 
 	/**
 	 * "Needs: Muddy key (in bank)"; the status is read on the client thread, so it fills in after.
+	 * Clicking it looks the key up, for where to get one.
 	 */
-	private static JLabel needsLabel(String requiredItem, int requiredItemId, ClientThread clientThread, ItemOwnership itemOwnership)
+	private static JLabel needsLabel(String requiredItem, int requiredItemId, ClientThread clientThread, ItemOwnership itemOwnership, AtlasPanel mainPanel)
 	{
 		JLabel label = new JLabel("Needs: " + requiredItem);
 		label.setName(requiredItem);
 		label.setFont(FontManager.getRunescapeSmallFont());
 		label.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+		label.setToolTipText("Click to look up " + requiredItem);
+		label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		label.addMouseListener(new MouseAdapter()
+		{
+			@Override
+			public void mouseClicked(MouseEvent e)
+			{
+				if (SwingUtilities.isLeftMouseButton(e))
+				{
+					mainPanel.searchItemNameAndDisplay(requiredItem);
+				}
+			}
+		});
 		if (requiredItemId > 0)
 		{
 			needsLabels.put(label, requiredItemId);
@@ -310,7 +326,7 @@ public class AtlasDropsPanel extends JPanel
 		{
 			label.setText("Needs: " + label.getName() + " (" + status.text + ")");
 			label.setForeground(missing ? ColorScheme.PROGRESS_ERROR_COLOR : ColorScheme.LIGHT_GRAY_COLOR);
-			label.setToolTipText(missing ? "Routing skips this until you have one" : null);
+			label.setToolTipText((missing ? "Routing skips this until you have one. " : "") + "Click to look up " + label.getName());
 		});
 	}
 
@@ -342,7 +358,24 @@ public class AtlasDropsPanel extends JPanel
 			{
 				row.setForeground(new Color(209, 174, 59));
 			}
-			row.setToolTipText(tiles.isEmpty() ? name + " (no map tiles)" : name + " (right-click to path here)");
+			String tooltip = tiles.isEmpty() ? name + " (no map tiles)" : name + " (right-click to path here)";
+			AtlasSourceLocation location = rowByName.get(name);
+			row.setToolTipText(rowTooltip(tooltip, location, List.of()));
+			if (location.getRequirements() != null)
+			{
+				clientThread.invokeLater(() ->
+				{
+					List<String> unmet = itemOwnership.unmetRequirements(location);
+					if (!unmet.isEmpty())
+					{
+						SwingUtilities.invokeLater(() ->
+						{
+							row.setForeground(ColorScheme.PROGRESS_ERROR_COLOR);
+							row.setToolTipText(rowTooltip(tooltip, location, unmet));
+						});
+					}
+				});
+			}
 			row.addMouseListener(new MouseAdapter()
 			{
 				@Override
@@ -371,6 +404,22 @@ public class AtlasDropsPanel extends JPanel
 			list.add(row);
 		});
 		return list;
+	}
+
+	private static String rowTooltip(String tooltip, AtlasSourceLocation location, List<String> unmet)
+	{
+		List<String> notes = LocationRequirements.notes(location.getRequirements());
+		if (notes.isEmpty())
+		{
+			return tooltip;
+		}
+		StringBuilder html = new StringBuilder("<html>").append(AtlasSourceRouteUtil.html(tooltip));
+		notes.forEach(note -> html.append("<br>").append(AtlasSourceRouteUtil.html(note)));
+		if (!unmet.isEmpty())
+		{
+			html.append("<br>Not met: ").append(AtlasSourceRouteUtil.html(String.join(", ", unmet))).append(", so routing skips it");
+		}
+		return html.append("</html>").toString();
 	}
 
 	private String buildQuantityString(AtlasDropSource dropSource)

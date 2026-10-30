@@ -33,6 +33,14 @@ final class AtlasSourceRouteUtil
 	}
 
 	/**
+	 * Escapes wiki text for an HTML tooltip.
+	 */
+	static String html(String text)
+	{
+		return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+	}
+
+	/**
 	 * Marks a source the wiki gives no map location for, so routing skips it.
 	 */
 	static JLabel noLocationLabel()
