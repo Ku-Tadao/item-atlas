@@ -83,7 +83,7 @@ public class AtlasSpawnPanel extends JPanel
 						data.put("start", playerWP);
 						// the route plugin picks the nearest tile
 						data.put("target", spawnTiles);
-						router.route(eventBus, data);
+						router.route(clientThread, eventBus, data);
 					}
 				});
 

@@ -43,6 +43,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.events.PluginMessage;
 import net.runelite.client.plugins.Plugin;
@@ -97,7 +98,7 @@ public class AtlasDropsPanel extends JPanel
 		}
 	));
 
-	public AtlasDropsPanel(AtlasDropItem dropItem, Map<String, List<AtlasSourceLocation>> locationsBySource, EventBus eventBus, PluginManager pluginManager, ItemAtlasConfig config)
+	public AtlasDropsPanel(AtlasDropItem dropItem, Map<String, List<AtlasSourceLocation>> locationsBySource, ClientThread clientThread, EventBus eventBus, PluginManager pluginManager, ItemAtlasConfig config)
 	{
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -167,7 +168,7 @@ public class AtlasDropsPanel extends JPanel
 				}
 				else
 				{
-					JPanel locationList = createLocationList(locations, eventBus, pluginManager);
+					JPanel locationList = createLocationList(locations, clientThread, eventBus, pluginManager);
 					int count = locationList.getComponentCount();
 					gbc.gridy++;
 					gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -261,7 +262,7 @@ public class AtlasDropsPanel extends JPanel
 	/**
 	 * One row per named location of a mob; right-click a row to route to its nearest tile.
 	 */
-	private static JPanel createLocationList(List<AtlasSourceLocation> locations, EventBus eventBus, PluginManager pluginManager)
+	private static JPanel createLocationList(List<AtlasSourceLocation> locations, ClientThread clientThread, EventBus eventBus, PluginManager pluginManager)
 	{
 		// the wiki can list one location on several lines, so merge rows by name
 		Map<String, Set<WorldPoint>> tilesByName = new LinkedHashMap<>();
@@ -301,7 +302,7 @@ public class AtlasDropsPanel extends JPanel
 						@Override
 						public void actionPerformed(ActionEvent event)
 						{
-							router.route(eventBus, Map.of("target", tiles));
+							router.route(clientThread, eventBus, Map.of("target", tiles));
 						}
 					});
 					item.setEnabled(router != null);

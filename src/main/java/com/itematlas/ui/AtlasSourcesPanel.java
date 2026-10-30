@@ -176,7 +176,7 @@ class AtlasSourcesPanel extends JPanel
 			case DROPS:
 				if (!dropSources.isEmpty()) {
 					Map<String, List<AtlasSourceLocation>> locationsBySource = dropLocations.stream().collect(Collectors.groupingBy(AtlasSourceLocation::getSource));
-					sectionItems.add(new AtlasDropsPanel(new AtlasDropItem(atlasItem.getInfoItem().getName(), atlasItem.getInfoItem().getVersion(), dropSources), locationsBySource, eventBus, pluginManager, config));
+					sectionItems.add(new AtlasDropsPanel(new AtlasDropItem(atlasItem.getInfoItem().getName(), atlasItem.getInfoItem().getVersion(), dropSources), locationsBySource, clientThread, eventBus, pluginManager, config));
 				}
 				break;
 
@@ -310,7 +310,7 @@ class AtlasSourcesPanel extends JPanel
 				{
 					if (requestRoute)
 					{
-						router.route(eventBus, Map.of("target", targets));
+						router.route(clientThread, eventBus, Map.of("target", targets));
 					}
 					tooltip = requestRoute
 						? "Route request sent to " + router.pluginName + ". Stock and access are not guaranteed."

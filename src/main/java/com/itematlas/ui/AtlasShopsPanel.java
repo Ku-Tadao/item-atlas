@@ -153,7 +153,7 @@ public class AtlasShopsPanel extends JPanel
 								Map<String, Object> data = new HashMap<>();
 								data.put("start", playerWP);
 								data.put("target", shopTiles);
-								router.route(eventBus, data);
+								router.route(clientThread, eventBus, data);
 							}
 						});
 

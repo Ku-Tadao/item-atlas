@@ -18,6 +18,7 @@ import javax.swing.border.EmptyBorder;
 import lombok.RequiredArgsConstructor;
 import net.runelite.api.Constants;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.events.PluginMessage;
 import net.runelite.client.plugins.Plugin;
@@ -104,12 +105,13 @@ final class AtlasSourceRouteUtil
 		final String pluginName;
 		final String namespace;
 
-		void route(EventBus eventBus, Map<String, Object> data)
+		// route plugins read the player's position when handling this, which only works on the client thread
+		void route(ClientThread clientThread, EventBus eventBus, Map<String, Object> data)
 		{
 			Map<String, Object> message = new HashMap<>(data);
 			// GPS shows this in its route header; Shortest Path ignores it
 			message.put("source", "Item Atlas");
-			eventBus.post(new PluginMessage(namespace, "path", message));
+			clientThread.invoke(() -> eventBus.post(new PluginMessage(namespace, "path", message)));
 		}
 	}
 
