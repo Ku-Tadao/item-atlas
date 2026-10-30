@@ -16,7 +16,8 @@ public class DropSourceLocationsQuery extends ModeledQuery<AtlasSourceLocation>
 	public String getSql()
 	{
 		//language=SQL	
-		return "SELECT SL.*, (SELECT MIN(ID) FROM ITEMS WHERE NAME = SL.REQUIRED_ITEM) AS REQUIRED_ITEM_ID " +
+		// the wiki can link the singular of a plural item: "house key" is the item "House keys"
+		return "SELECT SL.*, (SELECT MIN(ID) FROM ITEMS WHERE NAME IN (SL.REQUIRED_ITEM, SL.REQUIRED_ITEM || 's')) AS REQUIRED_ITEM_ID " +
 			"FROM SOURCE_LOCATIONS SL " +
 			"WHERE SOURCE IN (SELECT SOURCE FROM DROP_SOURCES WHERE ITEM_ID = ?)";
 	}

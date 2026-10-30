@@ -76,16 +76,26 @@ public class ItemOwnership
 
 	public Status status(int itemId)
 	{
-		if (carries(InventoryID.INV, itemId) || carries(InventoryID.WORN, itemId))
+		return status(carries(InventoryID.INV, itemId) || carries(InventoryID.WORN, itemId),
+			configManager.getRSProfileConfiguration(ItemAtlasConfig.GROUP, BANK_KEY),
+			configManager.getRSProfileConfiguration(ItemAtlasConfig.GROUP, GROUP_STORAGE_KEY),
+			itemId);
+	}
+
+	/**
+	 * {@code bank} and {@code groupStorage} are the saved snapshots, null when never opened.
+	 */
+	static Status status(boolean carried, String bank, String groupStorage, int itemId)
+	{
+		if (carried)
 		{
 			return Status.CARRIED;
 		}
-		String bank = configManager.getRSProfileConfiguration(ItemAtlasConfig.GROUP, BANK_KEY);
 		if (stored(bank, itemId))
 		{
 			return Status.BANK;
 		}
-		if (stored(configManager.getRSProfileConfiguration(ItemAtlasConfig.GROUP, GROUP_STORAGE_KEY), itemId))
+		if (stored(groupStorage, itemId))
 		{
 			return Status.GROUP_STORAGE;
 		}
