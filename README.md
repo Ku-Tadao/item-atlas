@@ -4,6 +4,8 @@ Where to get every item in Old School RuneScape and what it's used for: shops, d
 
 Item Atlas is a fork of [Not Enough Runes](https://github.com/Hannah-GBS/notenoughrunes) by Hannah_GBS and LlemonDuck (BSD 2-Clause, see [LICENSE](LICENSE)).
 
+Item data comes from [Ku-Tadao/runelite-wiki-scraper](https://github.com/Ku-Tadao/runelite-wiki-scraper), a fork of Hannah_GBS's scraper that rebuilds `data.sqlite` from the OSRS Wiki every Friday.
+
 ## Routing to sources
 
 Right-click a shop or spawn, or use **Route to shop/spawn** on an item's sources, to get directions. Item Atlas works with whichever route plugin you have enabled:

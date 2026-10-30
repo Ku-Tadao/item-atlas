@@ -29,7 +29,7 @@ public class H2DbFetcher
 {
 
 	private static final String dbFileName = "data.sqlite";
-	private static final String remoteUrl = "https://raw.githubusercontent.com/Hannah-GBS/runelite-wiki-scraper/wiki-data/output/" + dbFileName;
+	private static final String remoteUrl = "https://raw.githubusercontent.com/Ku-Tadao/runelite-wiki-scraper/wiki-data/output/" + dbFileName;
 	public static final File dbFile = new File(ItemAtlasPlugin.DATA_DIR, dbFileName);
 
 	private final OkHttpClient httpClient;
