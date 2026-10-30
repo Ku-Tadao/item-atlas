@@ -22,6 +22,7 @@ import java.awt.font.TextAttribute;
 import java.awt.image.BufferedImage;
 import java.text.DecimalFormat;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -58,6 +60,9 @@ public class AtlasDropsPanel extends JPanel
 {
 	
 	private static final DecimalFormat PERCENT_FORMAT = new DecimalFormat("#.##%");
+
+	// "Needs" labels to refresh when a key moves; weak, since every search rebuilds the panel
+	private static final Map<JLabel, Integer> needsLabels = Collections.synchronizedMap(new WeakHashMap<>());
 
 	private static final String[] dropTypes = {
 		"agility",
@@ -268,35 +273,50 @@ public class AtlasDropsPanel extends JPanel
 	}
 
 	/**
-	 * One row per named location of a mob; right-click a row to route to its nearest tile.
-	 */
-	/**
 	 * "Needs: Muddy key (in bank)"; the status is read on the client thread, so it fills in after.
 	 */
 	private static JLabel needsLabel(String requiredItem, int requiredItemId, ClientThread clientThread, ItemOwnership itemOwnership)
 	{
 		JLabel label = new JLabel("Needs: " + requiredItem);
+		label.setName(requiredItem);
 		label.setFont(FontManager.getRunescapeSmallFont());
 		label.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 		if (requiredItemId > 0)
 		{
-			clientThread.invokeLater(() ->
-			{
-				ItemOwnership.Status status = itemOwnership.status(requiredItemId);
-				SwingUtilities.invokeLater(() ->
-				{
-					label.setText("Needs: " + requiredItem + " (" + status.text + ")");
-					if (status == ItemOwnership.Status.MISSING)
-					{
-						label.setForeground(ColorScheme.PROGRESS_ERROR_COLOR);
-						label.setToolTipText("Routing skips this until you have one");
-					}
-				});
-			});
+			needsLabels.put(label, requiredItemId);
+			clientThread.invokeLater(() -> showStatus(label, requiredItemId, itemOwnership));
 		}
 		return label;
 	}
 
+	/**
+	 * Re-reads every shown key status; call on the client thread when a key may have moved.
+	 */
+	public static void refreshNeeds(ItemOwnership itemOwnership)
+	{
+		Map<JLabel, Integer> labels;
+		synchronized (needsLabels)
+		{
+			labels = new HashMap<>(needsLabels);
+		}
+		labels.forEach((label, itemId) -> showStatus(label, itemId, itemOwnership));
+	}
+
+	private static void showStatus(JLabel label, int itemId, ItemOwnership itemOwnership)
+	{
+		ItemOwnership.Status status = itemOwnership.status(itemId);
+		boolean missing = status == ItemOwnership.Status.MISSING;
+		SwingUtilities.invokeLater(() ->
+		{
+			label.setText("Needs: " + label.getName() + " (" + status.text + ")");
+			label.setForeground(missing ? ColorScheme.PROGRESS_ERROR_COLOR : ColorScheme.LIGHT_GRAY_COLOR);
+			label.setToolTipText(missing ? "Routing skips this until you have one" : null);
+		});
+	}
+
+	/**
+	 * One row per named location of a mob; right-click a row to route to its nearest tile.
+	 */
 	private static JPanel createLocationList(List<AtlasSourceLocation> locations, ClientThread clientThread, EventBus eventBus, PluginManager pluginManager, ItemOwnership itemOwnership)
 	{
 		// the wiki can list one location on several lines, so merge rows by name

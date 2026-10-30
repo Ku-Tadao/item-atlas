@@ -49,12 +49,19 @@ public class ItemOwnership
 	@Inject
 	private ItemManager itemManager;
 
-	void onContainerChanged(int containerId, ItemContainer container)
+	/**
+	 * Saves the bank and group storage; returns whether the change can alter a {@link #status}.
+	 */
+	boolean onContainerChanged(int containerId, ItemContainer container)
 	{
+		if (containerId == InventoryID.INV || containerId == InventoryID.WORN)
+		{
+			return true;
+		}
 		String key = containerId == InventoryID.BANK ? BANK_KEY : containerId == InventoryID.INV_GROUP_TEMP ? GROUP_STORAGE_KEY : null;
 		if (key == null)
 		{
-			return;
+			return false;
 		}
 		// placeholders have quantity 0 and would canonicalize to the real item
 		String ids = Arrays.stream(container.getItems())
@@ -63,6 +70,7 @@ public class ItemOwnership
 			.distinct()
 			.collect(Collectors.joining(","));
 		configManager.setRSProfileConfiguration(ItemAtlasConfig.GROUP, key, ids);
+		return true;
 	}
 
 	public Status status(int itemId)

@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import com.google.inject.Provides;
 import com.itematlas.config.MenuLookupMode;
 import com.itematlas.db.H2DataProvider;
+import com.itematlas.ui.AtlasDropsPanel;
 import com.itematlas.ui.AtlasPanel;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -246,7 +247,10 @@ public class ItemAtlasPlugin extends Plugin
 	@Subscribe
 	public void onItemContainerChanged(ItemContainerChanged event)
 	{
-		itemOwnership.onContainerChanged(event.getContainerId(), event.getItemContainer());
+		if (itemOwnership.onContainerChanged(event.getContainerId(), event.getItemContainer()))
+		{
+			AtlasDropsPanel.refreshNeeds(itemOwnership);
+		}
 	}
 
 	@Subscribe
