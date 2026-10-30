@@ -10,9 +10,11 @@ import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 import net.runelite.client.config.ConfigSection;
 
-@ConfigGroup("itematlas")
+@ConfigGroup(ItemAtlasConfig.GROUP)
 public interface ItemAtlasConfig extends Config
 {
+	String GROUP = "itematlas";
+
 	@ConfigItem(
 		keyName = "invLookupMode",
 		name = "Inventory Lookup",

@@ -109,8 +109,8 @@ final class AtlasSourceRouteUtil
 		void route(ClientThread clientThread, EventBus eventBus, Map<String, Object> data)
 		{
 			Map<String, Object> message = new HashMap<>(data);
-			// GPS shows this in its route header; Shortest Path ignores it
-			message.put("source", "Item Atlas");
+			// GPS shows this in its route header; Shortest Path ignores it. Callers may pass their own
+			message.putIfAbsent("source", "Item Atlas");
 			clientThread.invoke(() -> eventBus.post(new PluginMessage(namespace, "path", message)));
 		}
 	}

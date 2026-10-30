@@ -1,6 +1,7 @@
 package com.itematlas.ui;
 
 import com.itematlas.ItemAtlasConfig;
+import com.itematlas.ItemOwnership;
 import com.itematlas.RarityParser;
 import com.itematlas.types.AtlasDropItem;
 import com.itematlas.types.AtlasDropSource;
@@ -98,7 +99,7 @@ public class AtlasDropsPanel extends JPanel
 		}
 	));
 
-	public AtlasDropsPanel(AtlasDropItem dropItem, Map<String, List<AtlasSourceLocation>> locationsBySource, ClientThread clientThread, EventBus eventBus, PluginManager pluginManager, ItemAtlasConfig config)
+	public AtlasDropsPanel(AtlasDropItem dropItem, Map<String, List<AtlasSourceLocation>> locationsBySource, ClientThread clientThread, EventBus eventBus, PluginManager pluginManager, ItemAtlasConfig config, ItemOwnership itemOwnership)
 	{
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -168,7 +169,14 @@ public class AtlasDropsPanel extends JPanel
 				}
 				else
 				{
-					JPanel locationList = createLocationList(locations, clientThread, eventBus, pluginManager);
+					String requiredItem = locations.get(0).getRequiredItem();
+					if (requiredItem != null)
+					{
+						gbc.gridy++;
+						dropPanel.add(needsLabel(requiredItem, locations.get(0).getRequiredItemId(), clientThread, itemOwnership), gbc);
+					}
+
+					JPanel locationList = createLocationList(locations, clientThread, eventBus, pluginManager, itemOwnership);
 					int count = locationList.getComponentCount();
 					gbc.gridy++;
 					gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -262,16 +270,45 @@ public class AtlasDropsPanel extends JPanel
 	/**
 	 * One row per named location of a mob; right-click a row to route to its nearest tile.
 	 */
-	private static JPanel createLocationList(List<AtlasSourceLocation> locations, ClientThread clientThread, EventBus eventBus, PluginManager pluginManager)
+	/**
+	 * "Needs: Muddy key (in bank)"; the status is read on the client thread, so it fills in after.
+	 */
+	private static JLabel needsLabel(String requiredItem, int requiredItemId, ClientThread clientThread, ItemOwnership itemOwnership)
+	{
+		JLabel label = new JLabel("Needs: " + requiredItem);
+		label.setFont(FontManager.getRunescapeSmallFont());
+		label.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+		if (requiredItemId > 0)
+		{
+			clientThread.invokeLater(() ->
+			{
+				ItemOwnership.Status status = itemOwnership.status(requiredItemId);
+				SwingUtilities.invokeLater(() ->
+				{
+					label.setText("Needs: " + requiredItem + " (" + status.text + ")");
+					if (status == ItemOwnership.Status.MISSING)
+					{
+						label.setForeground(ColorScheme.PROGRESS_ERROR_COLOR);
+						label.setToolTipText("Routing skips this until you have one");
+					}
+				});
+			});
+		}
+		return label;
+	}
+
+	private static JPanel createLocationList(List<AtlasSourceLocation> locations, ClientThread clientThread, EventBus eventBus, PluginManager pluginManager, ItemOwnership itemOwnership)
 	{
 		// the wiki can list one location on several lines, so merge rows by name
 		Map<String, Set<WorldPoint>> tilesByName = new LinkedHashMap<>();
 		Map<String, Boolean> membersByName = new HashMap<>();
+		Map<String, AtlasSourceLocation> rowByName = new HashMap<>();
 		for (AtlasSourceLocation location : locations)
 		{
 			String name = location.getLocation() == null || location.getLocation().isBlank() ? "Unnamed location" : location.getLocation();
 			tilesByName.computeIfAbsent(name, k -> new HashSet<>()).addAll(AtlasSourceRouteUtil.parseTiles(location.getTiles()));
 			membersByName.merge(name, location.isMembers(), Boolean::logicalAnd);
+			rowByName.putIfAbsent(name, location);
 		}
 
 		JPanel list = new JPanel(new GridLayout(0, 1));
@@ -302,7 +339,8 @@ public class AtlasDropsPanel extends JPanel
 						@Override
 						public void actionPerformed(ActionEvent event)
 						{
-							router.route(clientThread, eventBus, Map.of("target", tiles));
+							clientThread.invoke(() -> router.route(clientThread, eventBus, Map.of("target", tiles,
+								"source", itemOwnership.routeLabel(List.of(rowByName.get(name)), false))));
 						}
 					});
 					item.setEnabled(router != null);

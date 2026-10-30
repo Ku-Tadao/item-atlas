@@ -26,6 +26,7 @@ import net.runelite.api.Menu;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.events.CommandExecuted;
+import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.gameval.InterfaceID;
@@ -73,6 +74,9 @@ public class ItemAtlasPlugin extends Plugin
 
 	@Inject
 	private H2DataProvider dataProvider;
+
+	@Inject
+	private ItemOwnership itemOwnership;
 
 	@Getter(AccessLevel.PACKAGE)
 	private NavigationButton navButton;
@@ -237,6 +241,12 @@ public class ItemAtlasPlugin extends Plugin
 				log.error("Invalid type sent to searchItemName event, expected String");
 			}
 		}
+	}
+
+	@Subscribe
+	public void onItemContainerChanged(ItemContainerChanged event)
+	{
+		itemOwnership.onContainerChanged(event.getContainerId(), event.getItemContainer());
 	}
 
 	@Subscribe

@@ -16,7 +16,8 @@ public class DropSourceLocationsQuery extends ModeledQuery<AtlasSourceLocation>
 	public String getSql()
 	{
 		//language=SQL	
-		return "SELECT * FROM SOURCE_LOCATIONS " +
+		return "SELECT SL.*, (SELECT MIN(ID) FROM ITEMS WHERE NAME = SL.REQUIRED_ITEM) AS REQUIRED_ITEM_ID " +
+			"FROM SOURCE_LOCATIONS SL " +
 			"WHERE SOURCE IN (SELECT SOURCE FROM DROP_SOURCES WHERE ITEM_ID = ?)";
 	}
 
@@ -35,7 +36,9 @@ public class DropSourceLocationsQuery extends ModeledQuery<AtlasSourceLocation>
 				rs.getString("SOURCE"),
 				rs.getString("LOCATION"),
 				rs.getBoolean("IS_MEMBERS"),
-				rs.getString("TILES")
+				rs.getString("TILES"),
+				rs.getString("REQUIRED_ITEM"),
+				rs.getInt("REQUIRED_ITEM_ID")
 			);
 		}
 		finally

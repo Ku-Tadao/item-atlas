@@ -2,6 +2,7 @@ package com.itematlas.ui;
 
 import com.itematlas.ItemAtlasConfig;
 import com.itematlas.ItemAtlasPlugin;
+import com.itematlas.ItemOwnership;
 import com.itematlas.RarityParser;
 import com.itematlas.SourceSectionType;
 import com.itematlas.config.DefaultOpenSources;
@@ -78,6 +79,7 @@ class AtlasSourcesPanel extends JPanel
 	private final PluginManager pluginManager;
 	private final AtlasPanel mainPanel;
 	private final ItemAtlasConfig config;
+	private final ItemOwnership itemOwnership;
 
 	static
 	{
@@ -94,7 +96,7 @@ class AtlasSourcesPanel extends JPanel
 		SECTION_RETRACT_ICON_HOVER = new ImageIcon(ImageUtil.alphaOffset(sectionExpandIcon, -100));
 	}
 
-	AtlasSourcesPanel(AtlasItem atlasItem, ItemManager itemManager, H2DataProvider dataProvider, ClientThread clientThread, AtlasPanel mainPanel, ItemAtlasConfig config, Client client, EventBus eventBus, PluginManager pluginManager)
+	AtlasSourcesPanel(AtlasItem atlasItem, ItemManager itemManager, H2DataProvider dataProvider, ClientThread clientThread, AtlasPanel mainPanel, ItemAtlasConfig config, Client client, EventBus eventBus, PluginManager pluginManager, ItemOwnership itemOwnership)
 	{
 		this.atlasItem = atlasItem;
 		this.dataProvider = dataProvider;
@@ -105,6 +107,7 @@ class AtlasSourcesPanel extends JPanel
 		this.client = client;
 		this.eventBus = eventBus;
 		this.pluginManager = pluginManager;
+		this.itemOwnership = itemOwnership;
 
 
 		setLayout(new BorderLayout());
@@ -180,7 +183,7 @@ class AtlasSourcesPanel extends JPanel
 			case DROPS:
 				if (!dropSources.isEmpty()) {
 					Map<String, List<AtlasSourceLocation>> locationsBySource = dropLocations.stream().collect(Collectors.groupingBy(AtlasSourceLocation::getSource));
-					sectionItems.add(new AtlasDropsPanel(new AtlasDropItem(atlasItem.getInfoItem().getName(), atlasItem.getInfoItem().getVersion(), dropSources), locationsBySource, clientThread, eventBus, pluginManager, config));
+					sectionItems.add(new AtlasDropsPanel(new AtlasDropItem(atlasItem.getInfoItem().getName(), atlasItem.getInfoItem().getVersion(), dropSources), locationsBySource, clientThread, eventBus, pluginManager, config, itemOwnership));
 				}
 				break;
 
@@ -299,7 +302,8 @@ class AtlasSourcesPanel extends JPanel
 			}
 			else
 			{
-				Set<WorldPoint> targets = buildRouteTargets(shops, spawns, dropLocations, dropRarity);
+				List<AtlasSourceLocation> routedDrops = new ArrayList<>();
+				Set<WorldPoint> targets = buildRouteTargets(shops, spawns, dropLocations, dropRarity, routedDrops);
 				if (targets.isEmpty())
 				{
 					SwingUtilities.invokeLater(() ->
@@ -314,7 +318,11 @@ class AtlasSourcesPanel extends JPanel
 				{
 					if (requestRoute)
 					{
-						router.route(clientThread, eventBus, Map.of("target", targets));
+						Set<WorldPoint> dropTiles = routedDrops.stream()
+							.flatMap(location -> AtlasSourceRouteUtil.parseTiles(location.getTiles()).stream())
+							.collect(Collectors.toSet());
+						router.route(clientThread, eventBus, Map.of("target", targets,
+							"source", itemOwnership.routeLabel(routedDrops, !dropTiles.containsAll(targets))));
 					}
 					tooltip = requestRoute
 						? "Route request sent to " + router.pluginName + ". Stock and access are not guaranteed."
@@ -326,7 +334,7 @@ class AtlasSourcesPanel extends JPanel
 		});
 	}
 
-	private Set<WorldPoint> buildRouteTargets(List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations, Map<String, Double> dropRarity)
+	private Set<WorldPoint> buildRouteTargets(List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations, Map<String, Double> dropRarity, List<AtlasSourceLocation> routedDrops)
 	{
 		Set<WorldPoint> targets = new HashSet<>();
 		boolean membersWorld = client.getWorldType().contains(WorldType.MEMBERS);
@@ -361,6 +369,8 @@ class AtlasSourcesPanel extends JPanel
 		{
 			List<AtlasSourceLocation> drops = dropLocations.stream()
 				.filter(location -> membersWorld || !location.isMembers())
+				// a chest whose key the player has nowhere is no source
+				.filter(itemOwnership::canLoot)
 				.collect(Collectors.toList());
 			if (config.routeBestDropRate())
 			{
@@ -369,6 +379,7 @@ class AtlasSourcesPanel extends JPanel
 				drops.removeIf(location -> dropRarity.getOrDefault(location.getSource(), 0D) < best);
 			}
 
+			routedDrops.addAll(drops);
 			for (AtlasSourceLocation location : drops)
 			{
 				targets.addAll(AtlasSourceRouteUtil.parseTiles(location.getTiles()));

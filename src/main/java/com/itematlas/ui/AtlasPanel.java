@@ -2,6 +2,7 @@ package com.itematlas.ui;
 
 import com.google.common.base.Strings;
 import com.itematlas.ItemAtlasConfig;
+import com.itematlas.ItemOwnership;
 import com.itematlas.ItemAtlasPlugin;
 import com.itematlas.db.H2DataProvider;
 import com.itematlas.db.queries.ItemByIDQuery;
@@ -39,6 +40,7 @@ public class AtlasPanel extends PluginPanel
 	private final Client client;
 	private final EventBus eventBus;
 	private final PluginManager pluginManager;
+	private final ItemOwnership itemOwnership;
 
 	public final static int MAX_ENTRIES = 100;
 
@@ -61,7 +63,8 @@ public class AtlasPanel extends PluginPanel
 		ItemAtlasConfig config,
 		Client client,
 		EventBus eventBus,
-		PluginManager pluginManager
+		PluginManager pluginManager,
+		ItemOwnership itemOwnership
 	)
 	{
 		super(false);
@@ -73,6 +76,7 @@ public class AtlasPanel extends PluginPanel
 		this.client = client;
 		this.eventBus = eventBus;
 		this.pluginManager = pluginManager;
+		this.itemOwnership = itemOwnership;
 
 		setLayout(new BorderLayout());
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -163,7 +167,7 @@ public class AtlasPanel extends PluginPanel
 
 	void displayItem(AtlasItemGroup itemGroup, boolean showUses)
 	{
-		itemPanel = new AtlasItemPanel(itemGroup, itemManager, dataProvider, clientThread, this, config, client, eventBus, pluginManager, showUses);
+		itemPanel = new AtlasItemPanel(itemGroup, itemManager, dataProvider, clientThread, this, config, client, eventBus, pluginManager, itemOwnership, showUses);
 		remove(currentPanel);
 		currentPanel = itemPanel;
 		add(itemPanel, BorderLayout.CENTER);

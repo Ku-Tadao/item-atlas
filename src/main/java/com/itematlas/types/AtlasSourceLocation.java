@@ -13,4 +13,8 @@ public class AtlasSourceLocation
 
 	// "x,y,plane" tiles separated by ';'
 	private final String tiles;
+
+	// the key a chest needs, or null; its item ID is 0 when the name matches no item
+	private final String requiredItem;
+	private final int requiredItemId;
 }

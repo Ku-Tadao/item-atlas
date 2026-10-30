@@ -2,6 +2,7 @@ package com.itematlas.ui;
 
 import com.itematlas.NaturalOrderComparator;
 import com.itematlas.ItemAtlasConfig;
+import com.itematlas.ItemOwnership;
 import com.itematlas.db.H2DataProvider;
 import com.itematlas.types.AtlasInfoItem;
 import java.awt.BorderLayout;
@@ -74,13 +75,13 @@ class AtlasItemPanel extends JPanel
 	private final ItemManager itemManager;
 
 
-	AtlasItemPanel(AtlasItemGroup itemGroup, ItemManager itemManager, H2DataProvider dataProvider, ClientThread clientThread, AtlasPanel mainPanel, ItemAtlasConfig config, Client client, EventBus eventBus, PluginManager pluginManager, boolean showUses)
+	AtlasItemPanel(AtlasItemGroup itemGroup, ItemManager itemManager, H2DataProvider dataProvider, ClientThread clientThread, AtlasPanel mainPanel, ItemAtlasConfig config, Client client, EventBus eventBus, PluginManager pluginManager, ItemOwnership itemOwnership, boolean showUses)
 	{
 		Optional<AtlasItem> searchedItemOpt = itemGroup.getItems().stream().filter((groupItem) -> Objects.equals(groupItem.getInfoItem().getVersion(), itemGroup.getSelectedVersion())).findFirst();
 		Optional<AtlasItem> defaultItemForGroup = itemGroup.getItems().stream().filter((groupItem) -> groupItem.getInfoItem().isDefaultVersion()).findFirst();
 		this.selectedItem = searchedItemOpt.orElseGet(() -> defaultItemForGroup.orElseGet(() -> itemGroup.getItems().get(0)));
 		log.debug(this.selectedItem.getInfoItem().getVersion());
-		this.sourcesPanel = new AtlasSourcesPanel(selectedItem, itemManager, dataProvider, clientThread, mainPanel, config, client, eventBus, pluginManager);
+		this.sourcesPanel = new AtlasSourcesPanel(selectedItem, itemManager, dataProvider, clientThread, mainPanel, config, client, eventBus, pluginManager, itemOwnership);
 		this.usesPanel = new AtlasUsesPanel(selectedItem, itemManager, dataProvider, clientThread, mainPanel, config, client, eventBus, pluginManager);
 		this.clientThread = clientThread;
 		this.itemManager = itemManager;
