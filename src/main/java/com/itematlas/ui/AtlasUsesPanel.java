@@ -104,6 +104,13 @@ class AtlasUsesPanel extends JPanel
 
 	private void buildPanel(List<AtlasProductionRecipe> recipes, List<AtlasShop> shops)
 	{
+		if (recipes.isEmpty() && shops.isEmpty())
+		{
+			add(AtlasSourceRouteUtil.noDataPanel("The wiki lists no uses for this item."), BorderLayout.NORTH);
+			revalidate();
+			return;
+		}
+
 		GridBagConstraints containerGbc = new GridBagConstraints(
 			0,
 			0,

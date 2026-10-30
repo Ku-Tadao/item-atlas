@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -87,7 +88,7 @@ public class AtlasDropsPanel extends JPanel
 		}
 	));
 
-	public AtlasDropsPanel(AtlasDropItem dropItem, EventBus eventBus, PluginManager pluginManager, ItemAtlasConfig config)
+	public AtlasDropsPanel(AtlasDropItem dropItem, Set<String> locatedSources, EventBus eventBus, PluginManager pluginManager, ItemAtlasConfig config)
 	{
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -145,6 +146,15 @@ public class AtlasDropsPanel extends JPanel
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				dropPanel.add(rarityLabel, gbc);
+
+				if (!locatedSources.contains(dropSource.getSource()))
+				{
+					gbc.gridx = 0;
+					gbc.gridy++;
+					gbc.gridwidth = 3;
+					gbc.anchor = GridBagConstraints.LINE_START;
+					dropPanel.add(AtlasSourceRouteUtil.noLocationLabel(), gbc);
+				}
 
 				gbc.gridx = 0;
 				gbc.gridy++;

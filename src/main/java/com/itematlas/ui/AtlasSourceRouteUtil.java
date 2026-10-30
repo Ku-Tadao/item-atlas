@@ -1,10 +1,15 @@
 package com.itematlas.ui;
 
+import java.awt.BorderLayout;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+import javax.swing.border.EmptyBorder;
 import lombok.RequiredArgsConstructor;
 import net.runelite.api.Constants;
 import net.runelite.api.coords.WorldPoint;
@@ -12,11 +17,38 @@ import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.events.PluginMessage;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginManager;
+import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.FontManager;
 
 final class AtlasSourceRouteUtil
 {
 	private AtlasSourceRouteUtil()
 	{
+	}
+
+	/**
+	 * Marks a source the wiki gives no map location for, so routing skips it.
+	 */
+	static JLabel noLocationLabel()
+	{
+		JLabel label = new JLabel("No location data");
+		label.setFont(FontManager.getRunescapeSmallFont());
+		label.setForeground(ColorScheme.MEDIUM_GRAY_COLOR);
+		label.setToolTipText("The wiki has no map location for this, so routing skips it.");
+		return label;
+	}
+
+	/**
+	 * Shown in place of a tab whose item has nothing listed on the wiki.
+	 */
+	static JPanel noDataPanel(String text)
+	{
+		JPanel panel = new JPanel(new BorderLayout());
+		panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+		JLabel label = new JLabel("<html><div style='text-align:center'>" + text + "</div></html>", SwingConstants.CENTER);
+		label.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+		panel.add(label, BorderLayout.NORTH);
+		return panel;
 	}
 
 	/**

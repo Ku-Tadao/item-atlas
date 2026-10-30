@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -118,8 +119,15 @@ class AtlasSourcesPanel extends JPanel
 
 	private void buildPanel(List<AtlasProductionRecipe> recipes, List<AtlasDropSource> dropSources, List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations)
 	{
+		if (recipes.isEmpty() && dropSources.isEmpty() && shops.isEmpty() && spawns.isEmpty())
+		{
+			add(AtlasSourceRouteUtil.noDataPanel("The wiki lists no way to get this item."), BorderLayout.NORTH);
+			revalidate();
+			return;
+		}
+
 		GridBagConstraints containerGbc = new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
-		JPanel recipeSection = createSection(SourceSectionType.RECIPES, recipes, dropSources, shops, spawns);
+		JPanel recipeSection = createSection(SourceSectionType.RECIPES, recipes, dropSources, shops, spawns, dropLocations);
 		JPanel container = new JPanel(new GridBagLayout());
 		if (config.routeShopSources() || config.routeGroundSpawnSources() || config.routeDropSources())
 		{
@@ -129,13 +137,13 @@ class AtlasSourcesPanel extends JPanel
 
 		container.add(recipeSection, containerGbc);
 		containerGbc.gridy++;
-		JPanel dropsSection = createSection(SourceSectionType.DROPS, recipes, dropSources, shops, spawns);
+		JPanel dropsSection = createSection(SourceSectionType.DROPS, recipes, dropSources, shops, spawns, dropLocations);
 		container.add(dropsSection, containerGbc);
 		containerGbc.gridy++;
-		JPanel shopsSection = createSection(SourceSectionType.SHOPS, recipes, dropSources, shops, spawns);
+		JPanel shopsSection = createSection(SourceSectionType.SHOPS, recipes, dropSources, shops, spawns, dropLocations);
 		container.add(shopsSection, containerGbc);
 		containerGbc.gridy++;
-		JPanel spawnsSection = createSection(SourceSectionType.SPAWNS, recipes, dropSources, shops, spawns);
+		JPanel spawnsSection = createSection(SourceSectionType.SPAWNS, recipes, dropSources, shops, spawns, dropLocations);
 		container.add(spawnsSection, containerGbc);
 		containerGbc.gridy++;
 
@@ -155,7 +163,7 @@ class AtlasSourcesPanel extends JPanel
 		revalidate();
 	}
 
-	private JPanel createSection(SourceSectionType sectionType, List<AtlasProductionRecipe> recipes, List<AtlasDropSource> dropSources, List<AtlasShop> shops, List<AtlasSpawnItem> spawns)
+	private JPanel createSection(SourceSectionType sectionType, List<AtlasProductionRecipe> recipes, List<AtlasDropSource> dropSources, List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations)
 	{
 		ArrayList<JPanel> sectionItems = new ArrayList<>();
 		switch (sectionType)
@@ -167,7 +175,8 @@ class AtlasSourcesPanel extends JPanel
 
 			case DROPS:
 				if (!dropSources.isEmpty()) {
-					sectionItems.add(new AtlasDropsPanel(new AtlasDropItem(atlasItem.getInfoItem().getName(), atlasItem.getInfoItem().getVersion(), dropSources), eventBus, pluginManager, config));
+					Set<String> locatedSources = dropLocations.stream().map(AtlasSourceLocation::getSource).collect(Collectors.toSet());
+					sectionItems.add(new AtlasDropsPanel(new AtlasDropItem(atlasItem.getInfoItem().getName(), atlasItem.getInfoItem().getVersion(), dropSources), locatedSources, eventBus, pluginManager, config));
 				}
 				break;
 
@@ -289,7 +298,13 @@ class AtlasSourcesPanel extends JPanel
 				Set<WorldPoint> targets = buildRouteTargets(shops, spawns, dropLocations);
 				if (targets.isEmpty())
 				{
-					tooltip = "No valid enabled shop, ground-spawn or drop locations are available.";
+					SwingUtilities.invokeLater(() ->
+					{
+						routeButton.setText("No locations to route to");
+						routeButton.setEnabled(false);
+						routeButton.setToolTipText("The wiki has no map location for any enabled shop, ground spawn or drop source of this item on this world.");
+					});
+					return;
 				}
 				else
 				{

@@ -216,6 +216,11 @@ public class AtlasShopsPanel extends JPanel
 				shopPanel.add(location, new GridBagConstraints(0, row, 1, 1, 1.0, 0.0, LINE_START, BOTH, new Insets(0, 4, 0, 0), 4, 4));
 				shopPanel.add(new JLabel("x" + shopItem.getStock()), new GridBagConstraints(1, row++, 1, 1, 0.1, 0.0, LINE_END, NONE, NO_INSETS, 4, 4));
 
+				if (AtlasSourceRouteUtil.tilesOrCoords(shop.getTiles(), shop.getCoords(), shop.getPlane()).isEmpty())
+				{
+					shopPanel.add(AtlasSourceRouteUtil.noLocationLabel(), new GridBagConstraints(0, row++, 2, 1, 1.0, 0.0, LINE_START, NONE, new Insets(0, 4, 0, 0), 4, 4));
+				}
+
 				container.add(shopPanel);
 				add(container);
 

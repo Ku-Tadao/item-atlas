@@ -51,6 +51,11 @@ public class AtlasSpawnPanel extends JPanel
 		location.setToolTipText(spawn.getLocation());
 		add(location, BorderLayout.CENTER);
 
+		if (AtlasSourceRouteUtil.tilesOrCoords(spawn.getTiles(), spawn.getCoords(), spawn.getPlane()).isEmpty())
+		{
+			add(AtlasSourceRouteUtil.noLocationLabel(), BorderLayout.SOUTH);
+		}
+
 		clientThread.invokeLater(() ->
 		{
 			WorldPoint playerWP;
