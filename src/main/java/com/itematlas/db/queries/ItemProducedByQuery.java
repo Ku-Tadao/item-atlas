@@ -23,9 +23,9 @@ public class ItemProducedByQuery extends ModeledQuery<AtlasProductionRecipe>
 			"FROM PRODUCTION_RECIPES PR " +
 			"LEFT JOIN PRODUCTION_MATERIALS PM ON PR.ID = PM.RECIPE_ID " +
 			"LEFT JOIN PRODUCTION_SKILLS PS ON PR.ID = PS.RECIPE_ID " +
-			"WHERE PR.OUTPUT_ITEM_ID = ? " +
-			"ORDER BY PR.ID " +
-			"LIMIT 100";
+			// limit whole recipes: a row limit on the join cut the last recipe's materials off
+			"WHERE PR.ID IN (SELECT ID FROM PRODUCTION_RECIPES WHERE OUTPUT_ITEM_ID = ? ORDER BY ID LIMIT 100) " +
+			"ORDER BY PR.ID";
 	}
 
 	@Override

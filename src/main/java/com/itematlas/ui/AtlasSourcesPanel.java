@@ -2,6 +2,7 @@ package com.itematlas.ui;
 
 import com.itematlas.ItemAtlasConfig;
 import com.itematlas.ItemAtlasPlugin;
+import com.itematlas.RarityParser;
 import com.itematlas.SourceSectionType;
 import com.itematlas.config.DefaultOpenSources;
 import com.itematlas.db.H2DataProvider;
@@ -131,7 +132,10 @@ class AtlasSourcesPanel extends JPanel
 		JPanel container = new JPanel(new GridBagLayout());
 		if (config.routeShopSources() || config.routeGroundSpawnSources() || config.routeDropSources())
 		{
-			container.add(createRouteButton(shops, spawns, dropLocations), new GridBagConstraints(0, 0, 1, 1, 1.0, 0.0, GridBagConstraints.LINE_START, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 8, 0), 0, 0));
+			// a source can drop the item at several rates, e.g. per quantity; its best one counts
+			Map<String, Double> dropRarity = dropSources.stream()
+				.collect(Collectors.toMap(AtlasDropSource::getSource, RarityParser::calculateRarity, Math::max));
+			container.add(createRouteButton(shops, spawns, dropLocations, dropRarity), new GridBagConstraints(0, 0, 1, 1, 1.0, 0.0, GridBagConstraints.LINE_START, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 8, 0), 0, 0));
 			containerGbc.gridy++;
 		}
 
@@ -263,18 +267,18 @@ class AtlasSourcesPanel extends JPanel
 		return section;
 	}
 
-	private JButton createRouteButton(List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations)
+	private JButton createRouteButton(List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations, Map<String, Double> dropRarity)
 	{
 		JButton routeButton = new JButton("Route to closest source");
 		routeButton.setPreferredSize(new Dimension(220, 30));
 		routeButton.setEnabled(false);
 		routeButton.setToolTipText("Checking route availability...");
-		routeButton.addActionListener(event -> updateRouteButton(routeButton, shops, spawns, dropLocations, true));
-		updateRouteButton(routeButton, shops, spawns, dropLocations, false);
+		routeButton.addActionListener(event -> updateRouteButton(routeButton, shops, spawns, dropLocations, dropRarity, true));
+		updateRouteButton(routeButton, shops, spawns, dropLocations, dropRarity, false);
 		return routeButton;
 	}
 
-	private void updateRouteButton(JButton routeButton, List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations, boolean requestRoute)
+	private void updateRouteButton(JButton routeButton, List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations, Map<String, Double> dropRarity, boolean requestRoute)
 	{
 		if (requestRoute)
 		{
@@ -295,7 +299,7 @@ class AtlasSourcesPanel extends JPanel
 			}
 			else
 			{
-				Set<WorldPoint> targets = buildRouteTargets(shops, spawns, dropLocations);
+				Set<WorldPoint> targets = buildRouteTargets(shops, spawns, dropLocations, dropRarity);
 				if (targets.isEmpty())
 				{
 					SwingUtilities.invokeLater(() ->
@@ -322,7 +326,7 @@ class AtlasSourcesPanel extends JPanel
 		});
 	}
 
-	private Set<WorldPoint> buildRouteTargets(List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations)
+	private Set<WorldPoint> buildRouteTargets(List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations, Map<String, Double> dropRarity)
 	{
 		Set<WorldPoint> targets = new HashSet<>();
 		boolean membersWorld = client.getWorldType().contains(WorldType.MEMBERS);
@@ -355,14 +359,18 @@ class AtlasSourcesPanel extends JPanel
 
 		if (config.routeDropSources())
 		{
-			// ponytail: nearest location wins regardless of drop rate; weigh by rarity if rare drops route badly
-			for (AtlasSourceLocation location : dropLocations)
+			List<AtlasSourceLocation> drops = dropLocations.stream()
+				.filter(location -> membersWorld || !location.isMembers())
+				.collect(Collectors.toList());
+			if (config.routeBestDropRate())
 			{
-				if (!membersWorld && location.isMembers())
-				{
-					continue;
-				}
+				// ties keep every source at the best rate, e.g. several monsters that all drop it at 1/128
+				double best = drops.stream().mapToDouble(location -> dropRarity.getOrDefault(location.getSource(), 0D)).max().orElse(0);
+				drops.removeIf(location -> dropRarity.getOrDefault(location.getSource(), 0D) < best);
+			}
 
+			for (AtlasSourceLocation location : drops)
+			{
 				targets.addAll(AtlasSourceRouteUtil.parseTiles(location.getTiles()));
 			}
 		}

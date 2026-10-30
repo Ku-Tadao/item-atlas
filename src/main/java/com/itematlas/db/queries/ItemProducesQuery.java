@@ -15,6 +15,8 @@ public class ItemProducesQuery extends ModeledQuery<AtlasProductionRecipe>
 
 	private final int itemID;
 	private final String itemName;
+	private final int offset;
+	private final int limit;
 
 	@Override
 	public String getSql()
@@ -24,12 +26,14 @@ public class ItemProducesQuery extends ModeledQuery<AtlasProductionRecipe>
 			"FROM PRODUCTION_RECIPES PR " +
 			"LEFT JOIN PRODUCTION_SKILLS PS ON PR.ID = PS.RECIPE_ID " +
 			"LEFT JOIN PRODUCTION_MATERIALS PM ON PR.ID = PM.RECIPE_ID " +
-			"WHERE PR.ID IN (SELECT RECIPE_ID FROM PRODUCTION_MATERIALS WHERE ITEM_ID = ?) " +
+			// page by whole recipes: a row limit on the join cut the last recipe's materials off
+			"WHERE PR.ID IN (SELECT ID FROM PRODUCTION_RECIPES " +
+			"WHERE ID IN (SELECT RECIPE_ID FROM PRODUCTION_MATERIALS WHERE ITEM_ID = ?) " +
 			// TOOLS is a comma separated list of wiki names
-			"OR (', ' || LOWER(PR.TOOLS) || ', ') LIKE ? " +
+			"OR (', ' || LOWER(TOOLS) || ', ') LIKE ? " +
+			"ORDER BY ID LIMIT ? OFFSET ?) " +
 			// convertRow reads one recipe's rows in a row
-			"ORDER BY PR.ID " +
-			"LIMIT 100";
+			"ORDER BY PR.ID";
 	}
 
 	@Override
@@ -37,6 +41,8 @@ public class ItemProducesQuery extends ModeledQuery<AtlasProductionRecipe>
 	{
 		ps.setInt(1, itemID);
 		ps.setString(2, "%, " + itemName.toLowerCase() + ", %");
+		ps.setInt(3, limit);
+		ps.setInt(4, offset);
 	}
 
 	@Override

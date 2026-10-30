@@ -50,6 +50,8 @@ class AtlasUsesPanel extends JPanel
 	private static final ImageIcon SECTION_RETRACT_ICON_HOVER;
 
 	static final ImageIcon BACK_ICON;
+
+	private static final int RECIPE_PAGE = 25;
 	static final ImageIcon BACK_ICON_HOVER;
 
 	private final AtlasItem atlasItem;
@@ -96,10 +98,42 @@ class AtlasUsesPanel extends JPanel
 
 		setLayout(new BorderLayout());
 
-		dataProvider.executeMany(new ItemProducesQuery(atlasItem.getInfoItem().getItemID(), atlasItem.getInfoItem().getName()), recipes ->
+		dataProvider.executeMany(recipePage(0), recipes ->
 			dataProvider.executeMany(new ItemCurrencyQuery(useName), shops ->
 				SwingUtilities.invokeLater(() ->
 					buildPanel(recipes, shops))));
+	}
+
+	// one more than a page, to know whether there's a next one
+	private ItemProducesQuery recipePage(int offset)
+	{
+		return new ItemProducesQuery(atlasItem.getInfoItem().getItemID(), atlasItem.getInfoItem().getName(), offset, RECIPE_PAGE + 1);
+	}
+
+	private void addRecipes(JPanel contents, List<AtlasProductionRecipe> page, int offset)
+	{
+		page.stream().limit(RECIPE_PAGE).forEach(recipe ->
+			contents.add(new AtlasRecipePanel(recipe, itemManager, clientThread, mainPanel, atlasItem.getInfoItem(), dataProvider)));
+
+		if (page.size() > RECIPE_PAGE)
+		{
+			int next = offset + RECIPE_PAGE;
+			JButton loadMore = new JButton("Load more (" + next + " shown)");
+			loadMore.addActionListener(e ->
+			{
+				loadMore.setEnabled(false);
+				loadMore.setText("Loading...");
+				dataProvider.executeMany(recipePage(next), more ->
+					SwingUtilities.invokeLater(() ->
+					{
+						contents.remove(loadMore);
+						addRecipes(contents, more, next);
+						contents.revalidate();
+						contents.repaint();
+					}));
+			});
+			contents.add(loadMore);
+		}
 	}
 
 	private void buildPanel(List<AtlasProductionRecipe> recipes, List<AtlasShop> shops)
@@ -152,8 +186,12 @@ class AtlasUsesPanel extends JPanel
 		switch (useSectionType)
 		{
 			case RECIPES:
-				recipes.forEach((recipe) ->
-					sectionItems.add(new AtlasRecipePanel(recipe, itemManager, clientThread, mainPanel, atlasItem.getInfoItem(), dataProvider)));
+				if (!recipes.isEmpty())
+				{
+					JPanel recipeList = new JPanel(new DynamicGridLayout(0, 1, 0, 10));
+					addRecipes(recipeList, recipes, 0);
+					sectionItems.add(recipeList);
+				}
 				break;
 
 			case SHOPS:

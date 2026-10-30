@@ -129,10 +129,22 @@ public interface ItemAtlasConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "routeBestDropRate",
+		name = "Route best drop rate",
+		description = "When routing to drop sources, only consider the monsters and objects with the best drop rate instead of every one",
+		position = 11,
+		section = integrationSection
+	)
+	default boolean routeBestDropRate()
+	{
+		return false;
+	}
+
+	@ConfigItem(
 		keyName = "bmeNPCLookup",
 		name = "Better Monster Examine",
 		description = "Click NPCs in the Drops section to look them up in Better Monster Examine. This requires the Better Monster Examine plugin to be installed and enabled",
-		position = 11,
+		position = 12,
 		section = integrationSection
 	)
 	default boolean bmeNPCLookup()
