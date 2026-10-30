@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 @Data
 @RequiredArgsConstructor
-public class NERDropSource
+public class AtlasDropSource
 {
 	private final String source;
 	private final int quantityLow;

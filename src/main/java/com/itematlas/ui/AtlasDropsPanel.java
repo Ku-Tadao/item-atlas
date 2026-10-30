@@ -2,9 +2,9 @@ package com.itematlas.ui;
 
 import com.itematlas.ItemAtlasConfig;
 import com.itematlas.RarityParser;
-import com.itematlas.types.NERDropItem;
-import com.itematlas.types.NERDropSource;
-import static com.itematlas.ui.NERPanel.MAX_ENTRIES;
+import com.itematlas.types.AtlasDropItem;
+import com.itematlas.types.AtlasDropSource;
+import static com.itematlas.ui.AtlasPanel.MAX_ENTRIES;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -42,7 +42,7 @@ import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.util.ImageUtil;
 
 @Slf4j
-public class NERDropsPanel extends JPanel
+public class AtlasDropsPanel extends JPanel
 {
 	
 	private static final DecimalFormat PERCENT_FORMAT = new DecimalFormat("#.##%");
@@ -73,11 +73,11 @@ public class NERDropsPanel extends JPanel
 			{
 				if (name.equals(""))
 				{
-					return ImageUtil.loadImageResource(NERDropsPanel.class, "drop_source_types/combat.png");
+					return ImageUtil.loadImageResource(AtlasDropsPanel.class, "drop_source_types/combat.png");
 				}
 				else
 				{
-					return ImageUtil.loadImageResource(NERDropsPanel.class, "drop_source_types/" + name + ".png");
+					return ImageUtil.loadImageResource(AtlasDropsPanel.class, "drop_source_types/" + name + ".png");
 				}
 			}
 			catch (Exception e)
@@ -87,7 +87,7 @@ public class NERDropsPanel extends JPanel
 		}
 	));
 
-	public NERDropsPanel(NERDropItem dropItem, EventBus eventBus, PluginManager pluginManager, ItemAtlasConfig config)
+	public AtlasDropsPanel(AtlasDropItem dropItem, EventBus eventBus, PluginManager pluginManager, ItemAtlasConfig config)
 	{
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -228,7 +228,7 @@ public class NERDropsPanel extends JPanel
 		
 	}
 
-	private String buildQuantityString(NERDropSource dropSource)
+	private String buildQuantityString(AtlasDropSource dropSource)
 	{
 		if (dropSource.getQuantityLow() == dropSource.getQuantityHigh())
 		{

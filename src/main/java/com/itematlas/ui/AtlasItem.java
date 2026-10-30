@@ -1,15 +1,15 @@
 package com.itematlas.ui;
 
-import com.itematlas.types.NERInfoItem;
+import com.itematlas.types.AtlasInfoItem;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import net.runelite.client.util.AsyncBufferedImage;
 
 @Data
 @AllArgsConstructor
-class NERItem
+class AtlasItem
 {
 	private AsyncBufferedImage icon;
 
-	private final NERInfoItem infoItem;
+	private final AtlasInfoItem infoItem;
 }

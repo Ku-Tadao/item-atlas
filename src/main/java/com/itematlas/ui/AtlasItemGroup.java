@@ -7,12 +7,12 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class NERItemGroup
+public class AtlasItemGroup
 {
 	private final String group;
 
 	@Nullable
 	private String selectedVersion;
 
-	private final List<NERItem> items;
+	private final List<AtlasItem> items;
 }

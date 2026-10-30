@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 
 @Data
 @RequiredArgsConstructor
-public class NERInfoItem
+public class AtlasInfoItem
 {
 	private final int itemID;
 	private final String name;
@@ -23,9 +23,9 @@ public class NERInfoItem
 	private final boolean isTradeable;
 	private final boolean isDefaultVersion;
 
-	public static NERInfoItem fromResultSet(ResultSet rs, boolean expand) throws SQLException
+	public static AtlasInfoItem fromResultSet(ResultSet rs, boolean expand) throws SQLException
 	{
-		NERInfoItem res = new NERInfoItem(
+		AtlasInfoItem res = new AtlasInfoItem(
 			rs.getInt("I.ID"),
 			rs.getString("I.NAME"),
 			rs.getString("I.EXAMINE_TEXT"),

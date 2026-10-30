@@ -16,7 +16,7 @@ public interface ItemAtlasConfig extends Config
 	@ConfigItem(
 		keyName = "invLookupMode",
 		name = "Inventory Lookup",
-		description = "Whether to show a NER Lookup option on inventory items, and when",
+		description = "Whether to show an Atlas Lookup option on inventory items, and when",
 		position = 0
 	)
 	default MenuLookupMode invLookupMode()
@@ -27,7 +27,7 @@ public interface ItemAtlasConfig extends Config
 	@ConfigItem(
 		keyName = "equipLookupMode",
 		name = "Equipment Lookup",
-		description = "Whether to show a NER Lookup option on equipped items, and when",
+		description = "Whether to show an Atlas Lookup option on equipped items, and when",
 		position = 1
 	)
 	default MenuLookupMode equipLookupMode() {
@@ -37,7 +37,7 @@ public interface ItemAtlasConfig extends Config
 	@ConfigItem(
 		keyName = "bankLookupMode",
 		name = "Bank Lookup",
-		description = "Whether to show a NER Lookup option on bank items, and when",
+		description = "Whether to show an Atlas Lookup option on bank items, and when",
 		position = 2
 	)
 	default MenuLookupMode bankLookupMode()
@@ -58,7 +58,7 @@ public interface ItemAtlasConfig extends Config
 	@ConfigItem(
 		keyName = "ccBroadcastLookup",
 		name = "Chat Broadcast Lookups",
-		description = "Whether to show a NER Lookup option on clan chat loot drop broadcasts",
+		description = "Whether to show an Atlas Lookup option on clan chat loot drop broadcasts",
 		position = 4
 	)
 	default boolean ccBroadcastLookup() {

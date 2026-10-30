@@ -1,7 +1,7 @@
 package com.itematlas.db.queries;
 
-import com.itematlas.types.NERShop;
-import com.itematlas.types.NERShopItem;
+import com.itematlas.types.AtlasShop;
+import com.itematlas.types.AtlasShopItem;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class ItemCurrencyQuery extends ModeledQuery<NERShop>
+public class ItemCurrencyQuery extends ModeledQuery<AtlasShop>
 {
 	
 	private final String name;
@@ -35,10 +35,10 @@ public class ItemCurrencyQuery extends ModeledQuery<NERShop>
 	}
 
 	@Override
-	public NERShop convertRow(ResultSet rs) throws SQLException
+	public AtlasShop convertRow(ResultSet rs) throws SQLException
 	{
 		int id = rs.getInt("SHOP_ID");
-		NERShop res = new NERShop(
+		AtlasShop res = new AtlasShop(
 			rs.getString("SHOP_NAME"),
 			rs.getString("SELL_MULTIPLIER"),
 			rs.getString("LOCATION"),
@@ -53,7 +53,7 @@ public class ItemCurrencyQuery extends ModeledQuery<NERShop>
 		{
 			if (rs.getInt("SHOP_ITEM_ID") != 0)
 			{
-				NERShopItem shopItem = new NERShopItem(
+				AtlasShopItem shopItem = new AtlasShopItem(
 					rs.getString("ITEM_NAME"),
 					rs.getString("ITEM_VERSION"),
 					rs.getInt("ITEM_ID"),

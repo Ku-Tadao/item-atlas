@@ -1,8 +1,8 @@
 package com.itematlas.ui;
 
-import com.itematlas.types.NERShop;
-import com.itematlas.types.NERShopItem;
-import static com.itematlas.ui.NERPanel.MAX_ENTRIES;
+import com.itematlas.types.AtlasShop;
+import com.itematlas.types.AtlasShopItem;
+import static com.itematlas.ui.AtlasPanel.MAX_ENTRIES;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -38,17 +38,17 @@ import net.runelite.client.plugins.PluginManager;
 import net.runelite.client.ui.ColorScheme;
 
 @Slf4j
-public class NERShopsPanel extends JPanel
+public class AtlasShopsPanel extends JPanel
 {
 
 	private static final Insets NO_INSETS = new Insets(0, 0, 0, 0);
 
-	public NERShopsPanel(List<NERShop> shops, NERItem nerItem, ItemManager itemManager, ClientThread clientThread, boolean isCurrency, NERPanel mainPanel, Client client, EventBus eventBus, PluginManager pluginManager)
+	public AtlasShopsPanel(List<AtlasShop> shops, AtlasItem atlasItem, ItemManager itemManager, ClientThread clientThread, boolean isCurrency, AtlasPanel mainPanel, Client client, EventBus eventBus, PluginManager pluginManager)
 	{
 
-		String useName = nerItem.getInfoItem().getName().length() > nerItem.getInfoItem().getGroup().length()
-			? nerItem.getInfoItem().getName()
-			: nerItem.getInfoItem().getGroup();
+		String useName = atlasItem.getInfoItem().getName().length() > atlasItem.getInfoItem().getGroup().length()
+			? atlasItem.getInfoItem().getName()
+			: atlasItem.getInfoItem().getGroup();
 
 		setMaximumSize(new Dimension(220, 80));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -59,12 +59,12 @@ public class NERShopsPanel extends JPanel
 		int entries = 0;
 
 		shopLoop:
-		for (NERShop shop : shops)
+		for (AtlasShop shop : shops)
 		{
-			List<NERShopItem> shopItems;
+			List<AtlasShopItem> shopItems;
 			shopItems = shop.getItems();
 
-			for (NERShopItem shopItem : shopItems)
+			for (AtlasShopItem shopItem : shopItems)
 			{
 				if (entries >= MAX_ENTRIES)
 				{
@@ -105,7 +105,7 @@ public class NERShopsPanel extends JPanel
 						{
 							sellPrice = String.valueOf(itemManager.getItemComposition(
 								itemManager.canonicalize(
-									nerItem.getInfoItem().getItemID()))
+									atlasItem.getInfoItem().getItemID()))
 								.getPrice() * (Integer.parseInt(shop.getSellMultiplier())) / 1000);
 						}
 					}
@@ -136,8 +136,8 @@ public class NERShopsPanel extends JPanel
 						playerWP = null;
 					}
 
-					shopWP = NERSourceRouteUtil.parseWorldPoint(shop.getCoords(), shop.getPlane());
-					NERSourceRouteUtil.Router router = NERSourceRouteUtil.findActiveRouter(pluginManager);
+					shopWP = AtlasSourceRouteUtil.parseWorldPoint(shop.getCoords(), shop.getPlane());
+					AtlasSourceRouteUtil.Router router = AtlasSourceRouteUtil.findActiveRouter(pluginManager);
 
 					JPopupMenu menu = new JPopupMenu("Menu");
 

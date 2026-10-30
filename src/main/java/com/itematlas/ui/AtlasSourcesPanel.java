@@ -9,11 +9,11 @@ import com.itematlas.db.queries.ItemDropSourcesQuery;
 import com.itematlas.db.queries.ItemProducedByQuery;
 import com.itematlas.db.queries.ItemSoldAtQuery;
 import com.itematlas.db.queries.ItemSpawnQuery;
-import com.itematlas.types.NERDropItem;
-import com.itematlas.types.NERDropSource;
-import com.itematlas.types.NERProductionRecipe;
-import com.itematlas.types.NERShop;
-import com.itematlas.types.NERSpawnItem;
+import com.itematlas.types.AtlasDropItem;
+import com.itematlas.types.AtlasDropSource;
+import com.itematlas.types.AtlasProductionRecipe;
+import com.itematlas.types.AtlasShop;
+import com.itematlas.types.AtlasSpawnItem;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
@@ -55,7 +55,7 @@ import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.SwingUtil;
 
 @Slf4j
-class NERSourcesPanel extends JPanel
+class AtlasSourcesPanel extends JPanel
 {
 	private static final ImageIcon SECTION_EXPAND_ICON;
 	private static final ImageIcon SECTION_EXPAND_ICON_HOVER;
@@ -65,14 +65,14 @@ class NERSourcesPanel extends JPanel
 	static final ImageIcon BACK_ICON;
 	static final ImageIcon BACK_ICON_HOVER;
 
-	private final NERItem nerItem;
+	private final AtlasItem atlasItem;
 	private final H2DataProvider dataProvider;
 	private final ItemManager itemManager;
 	private final ClientThread clientThread;
 	private final Client client;
 	private final EventBus eventBus;
 	private final PluginManager pluginManager;
-	private final NERPanel mainPanel;
+	private final AtlasPanel mainPanel;
 	private final ItemAtlasConfig config;
 
 	static
@@ -90,9 +90,9 @@ class NERSourcesPanel extends JPanel
 		SECTION_RETRACT_ICON_HOVER = new ImageIcon(ImageUtil.alphaOffset(sectionExpandIcon, -100));
 	}
 
-	NERSourcesPanel(NERItem nerItem, ItemManager itemManager, H2DataProvider dataProvider, ClientThread clientThread, NERPanel mainPanel, ItemAtlasConfig config, Client client, EventBus eventBus, PluginManager pluginManager)
+	AtlasSourcesPanel(AtlasItem atlasItem, ItemManager itemManager, H2DataProvider dataProvider, ClientThread clientThread, AtlasPanel mainPanel, ItemAtlasConfig config, Client client, EventBus eventBus, PluginManager pluginManager)
 	{
-		this.nerItem = nerItem;
+		this.atlasItem = atlasItem;
 		this.dataProvider = dataProvider;
 		this.itemManager = itemManager;
 		this.clientThread = clientThread;
@@ -105,15 +105,15 @@ class NERSourcesPanel extends JPanel
 
 		setLayout(new BorderLayout());
 
-		dataProvider.executeMany(new ItemProducedByQuery(nerItem.getInfoItem().getItemID()), recipes ->
-			dataProvider.executeMany(new ItemDropSourcesQuery(nerItem.getInfoItem().getItemID()), dropSources ->
-				dataProvider.executeMany(new ItemSoldAtQuery(nerItem.getInfoItem().getItemID()), shops ->
-					dataProvider.executeMany(new ItemSpawnQuery(nerItem.getInfoItem().getItemID()), spawns ->
+		dataProvider.executeMany(new ItemProducedByQuery(atlasItem.getInfoItem().getItemID()), recipes ->
+			dataProvider.executeMany(new ItemDropSourcesQuery(atlasItem.getInfoItem().getItemID()), dropSources ->
+				dataProvider.executeMany(new ItemSoldAtQuery(atlasItem.getInfoItem().getItemID()), shops ->
+					dataProvider.executeMany(new ItemSpawnQuery(atlasItem.getInfoItem().getItemID()), spawns ->
 						SwingUtilities.invokeLater(() ->
 							buildPanel(recipes, dropSources, shops, spawns))))));
 	}
 
-	private void buildPanel(List<NERProductionRecipe> recipes, List<NERDropSource> dropSources, List<NERShop> shops, List<NERSpawnItem> spawns)
+	private void buildPanel(List<AtlasProductionRecipe> recipes, List<AtlasDropSource> dropSources, List<AtlasShop> shops, List<AtlasSpawnItem> spawns)
 	{
 		GridBagConstraints containerGbc = new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
 		JPanel recipeSection = createSection(SourceSectionType.RECIPES, recipes, dropSources, shops, spawns);
@@ -152,31 +152,31 @@ class NERSourcesPanel extends JPanel
 		revalidate();
 	}
 
-	private JPanel createSection(SourceSectionType sectionType, List<NERProductionRecipe> recipes, List<NERDropSource> dropSources, List<NERShop> shops, List<NERSpawnItem> spawns)
+	private JPanel createSection(SourceSectionType sectionType, List<AtlasProductionRecipe> recipes, List<AtlasDropSource> dropSources, List<AtlasShop> shops, List<AtlasSpawnItem> spawns)
 	{
 		ArrayList<JPanel> sectionItems = new ArrayList<>();
 		switch (sectionType)
 		{
 			case RECIPES:
 				recipes.forEach((recipe) ->
-						sectionItems.add(new NERRecipePanel(recipe, itemManager, clientThread, mainPanel, nerItem.getInfoItem(), dataProvider)));
+						sectionItems.add(new AtlasRecipePanel(recipe, itemManager, clientThread, mainPanel, atlasItem.getInfoItem(), dataProvider)));
 				break;
 
 			case DROPS:
 				if (!dropSources.isEmpty()) {
-					sectionItems.add(new NERDropsPanel(new NERDropItem(nerItem.getInfoItem().getName(), nerItem.getInfoItem().getVersion(), dropSources), eventBus, pluginManager, config));
+					sectionItems.add(new AtlasDropsPanel(new AtlasDropItem(atlasItem.getInfoItem().getName(), atlasItem.getInfoItem().getVersion(), dropSources), eventBus, pluginManager, config));
 				}
 				break;
 
 			case SHOPS:
 				if (!shops.isEmpty()) {
-					sectionItems.add(new NERShopsPanel(shops, nerItem, itemManager, clientThread, false, mainPanel, client, eventBus, pluginManager));
+					sectionItems.add(new AtlasShopsPanel(shops, atlasItem, itemManager, clientThread, false, mainPanel, client, eventBus, pluginManager));
 				}
 				break;
 
 			case SPAWNS:
 				spawns.forEach((spawnItem) ->
-						sectionItems.add(new NERSpawnPanel(spawnItem, clientThread, client, eventBus, pluginManager)));
+						sectionItems.add(new AtlasSpawnPanel(spawnItem, clientThread, client, eventBus, pluginManager)));
 //					.limit(MAX_ENTRIES)
 
 				break;
@@ -251,7 +251,7 @@ class NERSourcesPanel extends JPanel
 		return section;
 	}
 
-	private JButton createRouteButton(List<NERShop> shops, List<NERSpawnItem> spawns)
+	private JButton createRouteButton(List<AtlasShop> shops, List<AtlasSpawnItem> spawns)
 	{
 		JButton routeButton = new JButton("Route to shop/spawn");
 		routeButton.setPreferredSize(new Dimension(220, 30));
@@ -262,7 +262,7 @@ class NERSourcesPanel extends JPanel
 		return routeButton;
 	}
 
-	private void updateRouteButton(JButton routeButton, List<NERShop> shops, List<NERSpawnItem> spawns, boolean requestRoute)
+	private void updateRouteButton(JButton routeButton, List<AtlasShop> shops, List<AtlasSpawnItem> spawns, boolean requestRoute)
 	{
 		if (requestRoute)
 		{
@@ -272,7 +272,7 @@ class NERSourcesPanel extends JPanel
 		clientThread.invokeLater(() ->
 		{
 			String tooltip;
-			NERSourceRouteUtil.Router router = NERSourceRouteUtil.findActiveRouter(pluginManager);
+			AtlasSourceRouteUtil.Router router = AtlasSourceRouteUtil.findActiveRouter(pluginManager);
 			if (client.getGameState() != GameState.LOGGED_IN || client.getLocalPlayer() == null)
 			{
 				tooltip = "Log in to route to an item source.";
@@ -304,21 +304,21 @@ class NERSourcesPanel extends JPanel
 		});
 	}
 
-	private Set<WorldPoint> buildRouteTargets(List<NERShop> shops, List<NERSpawnItem> spawns)
+	private Set<WorldPoint> buildRouteTargets(List<AtlasShop> shops, List<AtlasSpawnItem> spawns)
 	{
 		Set<WorldPoint> targets = new HashSet<>();
 		boolean membersWorld = client.getWorldType().contains(WorldType.MEMBERS);
 
 		if (config.routeShopSources())
 		{
-			for (NERShop shop : shops)
+			for (AtlasShop shop : shops)
 			{
 				if ((!membersWorld && shop.isMembers()) || hasKnownZeroStock(shop))
 				{
 					continue;
 				}
 
-				WorldPoint target = NERSourceRouteUtil.parseWorldPoint(shop.getCoords(), shop.getPlane());
+				WorldPoint target = AtlasSourceRouteUtil.parseWorldPoint(shop.getCoords(), shop.getPlane());
 				if (target != null)
 				{
 					targets.add(target);
@@ -328,14 +328,14 @@ class NERSourcesPanel extends JPanel
 
 		if (config.routeGroundSpawnSources())
 		{
-			for (NERSpawnItem spawn : spawns)
+			for (AtlasSpawnItem spawn : spawns)
 			{
 				if (!membersWorld && spawn.isMembers())
 				{
 					continue;
 				}
 
-				WorldPoint target = NERSourceRouteUtil.parseWorldPoint(spawn.getCoords(), spawn.getPlane());
+				WorldPoint target = AtlasSourceRouteUtil.parseWorldPoint(spawn.getCoords(), spawn.getPlane());
 				if (target != null)
 				{
 					targets.add(target);
@@ -346,7 +346,7 @@ class NERSourcesPanel extends JPanel
 		return targets;
 	}
 
-	private static boolean hasKnownZeroStock(NERShop shop)
+	private static boolean hasKnownZeroStock(AtlasShop shop)
 	{
 		return !shop.getItems().isEmpty() && shop.getItems().stream()
 			.allMatch(item -> item.getStock() != null && "0".equals(item.getStock().trim()));

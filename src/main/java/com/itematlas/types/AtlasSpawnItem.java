@@ -6,20 +6,17 @@ import lombok.RequiredArgsConstructor;
 
 @Data
 @RequiredArgsConstructor
-public class NERShopItem
+public class AtlasSpawnItem
 {
+	private final String group;
 	private final String name;
 
 	@Nullable
 	private final String version;
 
-	private final int itemID;
-	private final String currency;
-	private final String stock;
-
-	@Nullable
-	private final String buyPrice;
-
-	@Nullable
-	private final String sellPrice;
+	private final String coords;
+	private final String location;
+	private final boolean isMembers;
+	private final String plane;
+	private final String mapID;
 }

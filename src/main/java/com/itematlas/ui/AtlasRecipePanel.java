@@ -3,10 +3,10 @@ package com.itematlas.ui;
 import com.itematlas.db.H2DataProvider;
 import com.itematlas.db.queries.ItemByIDQuery;
 import com.itematlas.db.queries.ItemGroupQuery;
-import com.itematlas.types.NERInfoItem;
-import com.itematlas.types.NERProductionMaterial;
-import com.itematlas.types.NERProductionRecipe;
-import com.itematlas.types.NERProductionSkill;
+import com.itematlas.types.AtlasInfoItem;
+import com.itematlas.types.AtlasProductionMaterial;
+import com.itematlas.types.AtlasProductionRecipe;
+import com.itematlas.types.AtlasProductionSkill;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -45,7 +45,7 @@ import net.runelite.client.util.AsyncBufferedImage;
 import net.runelite.client.util.ImageUtil;
 
 @Slf4j
-public class NERRecipePanel extends JPanel
+public class AtlasRecipePanel extends JPanel
 {
 
 	private static final Map<String, BufferedImage> facilityImages = Stream.of(
@@ -101,7 +101,7 @@ public class NERRecipePanel extends JPanel
 		{
 			try
 			{
-				return ImageUtil.loadImageResource(NERRecipePanel.class, "recipe_facility_icons/" + name + ".png");
+				return ImageUtil.loadImageResource(AtlasRecipePanel.class, "recipe_facility_icons/" + name + ".png");
 			}
 			catch (Exception e)
 			{
@@ -114,10 +114,10 @@ public class NERRecipePanel extends JPanel
 	private static final int BANK_FILLER_ID = 20594;
 	private final ItemManager itemManager;
 	private final ClientThread clientThread;
-	private final NERPanel mainPanel;
+	private final AtlasPanel mainPanel;
 	private final H2DataProvider dataProvider;
 
-	public NERRecipePanel(NERProductionRecipe recipe, ItemManager itemManager, ClientThread clientThread, NERPanel mainPanel, NERInfoItem nerInfoItem, H2DataProvider dataProvider)
+	public AtlasRecipePanel(AtlasProductionRecipe recipe, ItemManager itemManager, ClientThread clientThread, AtlasPanel mainPanel, AtlasInfoItem atlasInfoItem, H2DataProvider dataProvider)
 	{
 		this.itemManager = itemManager;
 		this.clientThread = clientThread;
@@ -150,7 +150,7 @@ public class NERRecipePanel extends JPanel
 		skillsPanel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		int skillsRow = 0;
 
-		for (NERProductionSkill skill : recipe.getSkills())
+		for (AtlasProductionSkill skill : recipe.getSkills())
 		{
 			String iconPath = "/skill_icons/" + skill.getName().toLowerCase() + ".png";
 
@@ -170,7 +170,7 @@ public class NERRecipePanel extends JPanel
 			addTooltip(materialHeader, "Tools: " + recipe.getTools());
 		}
 
-		for (NERProductionMaterial material : recipe.getMaterials())
+		for (AtlasProductionMaterial material : recipe.getMaterials())
 		{
 			JPanel materialRow = new JPanel(new GridBagLayout());
 			materialRow.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -183,7 +183,7 @@ public class NERRecipePanel extends JPanel
 
 			materialRow.add(new JLabel("x" + material.getQuantity()), new GridBagConstraints(3, 0, 1, 1, 0.0, 0.0, EAST, NONE, new Insets(0, 8, 0, 0), 4, 4));
 
-			addMouseAdapter(materialLabel, material.getItemID(), nerInfoItem.getItemID());
+			addMouseAdapter(materialLabel, material.getItemID(), atlasInfoItem.getItemID());
 
 			add(materialRow, new GridBagConstraints(0, row++, 4, 1, 0.0, 0.0, CENTER, BOTH, NO_INSETS, 4, 4));
 		}
@@ -198,7 +198,7 @@ public class NERRecipePanel extends JPanel
 
 		add(outputLabel, new GridBagConstraints(0, row, 3, 1, 1.0, 0.0, LINE_START, BOTH, NO_INSETS, 4, 4));
 
-		addMouseAdapter(outputLabel, recipe.getOutputItemID(), nerInfoItem.getItemID());
+		addMouseAdapter(outputLabel, recipe.getOutputItemID(), atlasInfoItem.getItemID());
 
 		JLabel quantityLabel = new JLabel("x" + recipe.getOutputQuantity());
 		add(quantityLabel, new GridBagConstraints(3, row, 1, 1, 0.0, 0.0, LINE_END, NONE, new Insets(0, 4, 0, 0), 4, 4));
@@ -231,17 +231,17 @@ public class NERRecipePanel extends JPanel
 		});
 	}
 
-	private void displayItem(NERInfoItem itemInfo)
+	private void displayItem(AtlasInfoItem itemInfo)
 	{
 		this.dataProvider.executeMany(new ItemGroupQuery(itemInfo.getGroup()), infoItems ->
 			clientThread.invokeLater(() ->
 				{
-				List<NERItem> nerItems = infoItems.stream().map((groupItem) -> {
+				List<AtlasItem> atlasItems = infoItems.stream().map((groupItem) -> {
 					AsyncBufferedImage itemImage = this.itemManager.getImage(itemManager.canonicalize(groupItem.getItemID()));
-					return new NERItem(itemImage, groupItem);
+					return new AtlasItem(itemImage, groupItem);
 				}).collect(Collectors.toList());
 
-				NERItemGroup itemGroup = new NERItemGroup(itemInfo.getGroup(), itemInfo.getVersion(), nerItems);
+				AtlasItemGroup itemGroup = new AtlasItemGroup(itemInfo.getGroup(), itemInfo.getVersion(), atlasItems);
 				SwingUtilities.invokeLater(() -> mainPanel.displayItem(itemGroup));
 			})
 		);

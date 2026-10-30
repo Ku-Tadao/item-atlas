@@ -1,13 +1,13 @@
 package com.itematlas.db.queries;
 
-import com.itematlas.types.NERSpawnItem;
+import com.itematlas.types.AtlasSpawnItem;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class ItemSpawnQuery extends ModeledQuery<NERSpawnItem>
+public class ItemSpawnQuery extends ModeledQuery<AtlasSpawnItem>
 {
 
 	private final int itemId;
@@ -28,11 +28,11 @@ public class ItemSpawnQuery extends ModeledQuery<NERSpawnItem>
 	}
 
 	@Override
-	public NERSpawnItem convertRow(ResultSet rs) throws SQLException
+	public AtlasSpawnItem convertRow(ResultSet rs) throws SQLException
 	{
 		try
 		{
-			return new NERSpawnItem(
+			return new AtlasSpawnItem(
 				rs.getString("ITEM_GROUP_NAME"),
 				rs.getString("NAME"),
 				rs.getString("VERSION"),

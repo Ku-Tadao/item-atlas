@@ -1,8 +1,8 @@
 package com.itematlas.db.queries;
 
-import com.itematlas.types.NERProductionMaterial;
-import com.itematlas.types.NERProductionRecipe;
-import com.itematlas.types.NERProductionSkill;
+import com.itematlas.types.AtlasProductionMaterial;
+import com.itematlas.types.AtlasProductionRecipe;
+import com.itematlas.types.AtlasProductionSkill;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class ItemProducesQuery extends ModeledQuery<NERProductionRecipe>
+public class ItemProducesQuery extends ModeledQuery<AtlasProductionRecipe>
 {
 
 	private final int itemID;
@@ -35,10 +35,10 @@ public class ItemProducesQuery extends ModeledQuery<NERProductionRecipe>
 	}
 
 	@Override
-	public NERProductionRecipe convertRow(ResultSet rs) throws SQLException
+	public AtlasProductionRecipe convertRow(ResultSet rs) throws SQLException
 	{
 		int id = rs.getInt("PR_ID");
-		NERProductionRecipe res = new NERProductionRecipe(
+		AtlasProductionRecipe res = new AtlasProductionRecipe(
 			rs.getString("TICKS"),
 			new ArrayList<>(),
 			rs.getString("FACILITIES"),
@@ -57,7 +57,7 @@ public class ItemProducesQuery extends ModeledQuery<NERProductionRecipe>
 		{
 			if (rs.getInt("PM_ID") != 0)
 			{
-				NERProductionMaterial material = new NERProductionMaterial(
+				AtlasProductionMaterial material = new AtlasProductionMaterial(
 					rs.getString("ITEM_NAME"),
 					rs.getString("ITEM_VERSION"),
 					rs.getInt("ITEM_ID"),
@@ -71,7 +71,7 @@ public class ItemProducesQuery extends ModeledQuery<NERProductionRecipe>
 
 			if (rs.getInt("PS_ID") != 0)
 			{
-				NERProductionSkill skill = new NERProductionSkill(
+				AtlasProductionSkill skill = new AtlasProductionSkill(
 					rs.getString("NAME"),
 					rs.getString("LEVEL"),
 					rs.getString("EXPERIENCE"),

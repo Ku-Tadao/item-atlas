@@ -5,7 +5,7 @@ import com.google.gson.Gson;
 import com.google.inject.Provides;
 import com.itematlas.config.MenuLookupMode;
 import com.itematlas.db.H2DataProvider;
-import com.itematlas.ui.NERPanel;
+import com.itematlas.ui.AtlasPanel;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.Arrays;
@@ -54,7 +54,7 @@ import net.runelite.client.util.Text;
 public class ItemAtlasPlugin extends Plugin
 {
 
-	public static final File NER_DATA_DIR = new File(RuneLite.RUNELITE_DIR, "item-atlas");
+	public static final File DATA_DIR = new File(RuneLite.RUNELITE_DIR, "item-atlas");
 
 	@Inject
 	private Client client;
@@ -79,7 +79,7 @@ public class ItemAtlasPlugin extends Plugin
 
 	@Getter(AccessLevel.PACKAGE)
 	@Setter(AccessLevel.PACKAGE)
-	private NERPanel nerPanel;
+	private AtlasPanel atlasPanel;
 
 	// Items with different collection log IDs that are not mapped by Enum 3721
 	private static final Map<Integer, Integer> ITEM_ID_MAP = new ImmutableMap.Builder<Integer, Integer>()
@@ -97,9 +97,9 @@ public class ItemAtlasPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
-		if (!NER_DATA_DIR.exists())
+		if (!DATA_DIR.exists())
 		{
-			NER_DATA_DIR.mkdirs();
+			DATA_DIR.mkdirs();
 			dataProvider.init(); // async
 		}
 		else
@@ -108,14 +108,14 @@ public class ItemAtlasPlugin extends Plugin
 		}
 
 
-		nerPanel = injector.getInstance(NERPanel.class);
+		atlasPanel = injector.getInstance(AtlasPanel.class);
 		final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
 
 		navButton = NavigationButton.builder()
 			.tooltip("Item Atlas")
 			.icon(icon)
 			.priority(5)
-			.panel(nerPanel)
+			.panel(atlasPanel)
 			.build();
 
 		clientToolbar.addNavigation(navButton);
@@ -124,7 +124,7 @@ public class ItemAtlasPlugin extends Plugin
 	@Override
 	protected void shutDown() throws Exception
 	{
-		nerPanel = null;
+		atlasPanel = null;
 		clientToolbar.removeNavigation(navButton);
 		cleanUpWidgets();
 	}
@@ -192,12 +192,12 @@ public class ItemAtlasPlugin extends Plugin
 
 			int finalItemId = itemId;
 			menu.createMenuEntry(-1)
-				.setOption("NER Lookup")
+				.setOption("Atlas Lookup")
 				.setTarget(entry.getTarget())
 				.setType(MenuAction.RUNELITE)
 				.onClick(e ->
 				{
-					nerPanel.displayItemById(finalItemId);
+					atlasPanel.displayItemById(finalItemId);
 					SwingUtilities.invokeLater(() -> clientToolbar.openPanel(navButton));
 				});
 		}
@@ -217,9 +217,9 @@ public class ItemAtlasPlugin extends Plugin
 
 			if (itemId instanceof Integer) {
 				if (data.get("openUses") instanceof Boolean) {
-					nerPanel.displayItemById((int) itemId, (boolean) data.get("openUses"));
+					atlasPanel.displayItemById((int) itemId, (boolean) data.get("openUses"));
 				} else {
-					nerPanel.displayItemById((int) itemId);
+					atlasPanel.displayItemById((int) itemId);
 				}
 
 				SwingUtilities.invokeLater(() -> clientToolbar.openPanel(navButton));
@@ -231,7 +231,7 @@ public class ItemAtlasPlugin extends Plugin
 			Object itemName = data.getOrDefault("itemName", null);
 
 			if (itemName instanceof String) {
-				nerPanel.searchItemName((String) itemName);
+				atlasPanel.searchItemName((String) itemName);
 				SwingUtilities.invokeLater(() -> clientToolbar.openPanel(navButton));
 			} else {
 				log.error("Invalid type sent to searchItemName event, expected String");
@@ -252,7 +252,7 @@ public class ItemAtlasPlugin extends Plugin
 	public void onCommandExecuted(CommandExecuted event) {
 		if (event.getCommand().equals("nerlookup")) {
 			var itemId = event.getArguments()[0];
-			nerPanel.displayItemById(Integer.parseInt(itemId));
+			atlasPanel.displayItemById(Integer.parseInt(itemId));
 		}
 	}
 
@@ -360,10 +360,10 @@ public class ItemAtlasPlugin extends Plugin
 
 	private void addChatMenuEntry(Widget messageWidget, String itemName)
 	{
-		messageWidget.setAction(7, "NER Lookup");
+		messageWidget.setAction(7, "Atlas Lookup");
 		messageWidget.setHasListener(true);
 		messageWidget.setOnOpListener((JavaScriptCallback) (event) -> {
-			nerPanel.searchItemNameAndDisplay(itemName);
+			atlasPanel.searchItemNameAndDisplay(itemName);
 			SwingUtilities.invokeLater(() -> clientToolbar.openPanel(navButton));
 		});
 		messageWidget.setName(itemName);

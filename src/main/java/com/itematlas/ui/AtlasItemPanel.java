@@ -3,7 +3,7 @@ package com.itematlas.ui;
 import com.itematlas.NaturalOrderComparator;
 import com.itematlas.ItemAtlasConfig;
 import com.itematlas.db.H2DataProvider;
-import com.itematlas.types.NERInfoItem;
+import com.itematlas.types.AtlasInfoItem;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -51,37 +51,37 @@ import net.runelite.client.util.LinkBrowser;
 import net.runelite.client.util.QuantityFormatter;
 
 @Slf4j
-class NERItemPanel extends JPanel
+class AtlasItemPanel extends JPanel
 {
 	private static final Dimension ICON_SIZE = new Dimension(38, 32);
 
-	private static final BufferedImage WIKI_ICON_DESELECTED = ImageUtil.loadImageResource(NERItemPanel.class, "wiki_icon_deselected.png");
-	private static final BufferedImage WIKI_ICON_SELECTED = ImageUtil.loadImageResource(NERItemPanel.class, "wiki_icon_selected.png");
-	private static final BufferedImage GE_ICON = ImageUtil.loadImageResource(NERItemPanel.class, "ge_icon.png");
-	private static final BufferedImage HA_ICON = ImageUtil.loadImageResource(NERItemPanel.class, "ha_icon.png");
+	private static final BufferedImage WIKI_ICON_DESELECTED = ImageUtil.loadImageResource(AtlasItemPanel.class, "wiki_icon_deselected.png");
+	private static final BufferedImage WIKI_ICON_SELECTED = ImageUtil.loadImageResource(AtlasItemPanel.class, "wiki_icon_selected.png");
+	private static final BufferedImage GE_ICON = ImageUtil.loadImageResource(AtlasItemPanel.class, "ge_icon.png");
+	private static final BufferedImage HA_ICON = ImageUtil.loadImageResource(AtlasItemPanel.class, "ha_icon.png");
 
 	private static final int ITEM_COMP_ALCHABLE_PARAM = 295;
 
 	@Getter
-	private final NERSourcesPanel sourcesPanel;
+	private final AtlasSourcesPanel sourcesPanel;
 
 	@Getter
-	private final NERUsesPanel usesPanel;
+	private final AtlasUsesPanel usesPanel;
 	private boolean showingUses;
-	public NERItem selectedItem;
+	public AtlasItem selectedItem;
 	private final ClientThread clientThread;
 
 	private final ItemManager itemManager;
 
 
-	NERItemPanel(NERItemGroup itemGroup, ItemManager itemManager, H2DataProvider dataProvider, ClientThread clientThread, NERPanel mainPanel, ItemAtlasConfig config, Client client, EventBus eventBus, PluginManager pluginManager, boolean showUses)
+	AtlasItemPanel(AtlasItemGroup itemGroup, ItemManager itemManager, H2DataProvider dataProvider, ClientThread clientThread, AtlasPanel mainPanel, ItemAtlasConfig config, Client client, EventBus eventBus, PluginManager pluginManager, boolean showUses)
 	{
-		Optional<NERItem> searchedItemOpt = itemGroup.getItems().stream().filter((groupItem) -> Objects.equals(groupItem.getInfoItem().getVersion(), itemGroup.getSelectedVersion())).findFirst();
-		Optional<NERItem> defaultItemForGroup = itemGroup.getItems().stream().filter((groupItem) -> groupItem.getInfoItem().isDefaultVersion()).findFirst();
+		Optional<AtlasItem> searchedItemOpt = itemGroup.getItems().stream().filter((groupItem) -> Objects.equals(groupItem.getInfoItem().getVersion(), itemGroup.getSelectedVersion())).findFirst();
+		Optional<AtlasItem> defaultItemForGroup = itemGroup.getItems().stream().filter((groupItem) -> groupItem.getInfoItem().isDefaultVersion()).findFirst();
 		this.selectedItem = searchedItemOpt.orElseGet(() -> defaultItemForGroup.orElseGet(() -> itemGroup.getItems().get(0)));
 		log.debug(this.selectedItem.getInfoItem().getVersion());
-		this.sourcesPanel = new NERSourcesPanel(selectedItem, itemManager, dataProvider, clientThread, mainPanel, config, client, eventBus, pluginManager);
-		this.usesPanel = new NERUsesPanel(selectedItem, itemManager, dataProvider, clientThread, mainPanel, config, client, eventBus, pluginManager);
+		this.sourcesPanel = new AtlasSourcesPanel(selectedItem, itemManager, dataProvider, clientThread, mainPanel, config, client, eventBus, pluginManager);
+		this.usesPanel = new AtlasUsesPanel(selectedItem, itemManager, dataProvider, clientThread, mainPanel, config, client, eventBus, pluginManager);
 		this.clientThread = clientThread;
 		this.itemManager = itemManager;
 		this.showingUses = showUses;
@@ -250,7 +250,7 @@ class NERItemPanel extends JPanel
 		add(tabContainer, BorderLayout.CENTER);
 	}
 
-	void setItemPrices(NERInfoItem infoItem, JPanel geRow, JLabel geLabel, JPanel haRow, JLabel haLabel)
+	void setItemPrices(AtlasInfoItem infoItem, JPanel geRow, JLabel geLabel, JPanel haRow, JLabel haLabel)
 	{
 		clientThread.invokeLater(() ->
 		{

@@ -6,8 +6,8 @@ import lombok.RequiredArgsConstructor;
 
 @Data
 @RequiredArgsConstructor
-public class NERSpawnGroup
+public class AtlasSpawnGroup
 {
 	private final String group;
-	private final List<NERSpawnItem> spawns;
+	private final List<AtlasSpawnItem> spawns;
 }

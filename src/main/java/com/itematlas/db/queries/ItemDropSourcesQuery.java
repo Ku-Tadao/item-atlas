@@ -1,13 +1,13 @@
 package com.itematlas.db.queries;
 
-import com.itematlas.types.NERDropSource;
+import com.itematlas.types.AtlasDropSource;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class ItemDropSourcesQuery extends ModeledQuery<NERDropSource>
+public class ItemDropSourcesQuery extends ModeledQuery<AtlasDropSource>
 {
 
 	private final int itemId;
@@ -27,11 +27,11 @@ public class ItemDropSourcesQuery extends ModeledQuery<NERDropSource>
 	}
 
 	@Override
-	public NERDropSource convertRow(ResultSet rs) throws SQLException
+	public AtlasDropSource convertRow(ResultSet rs) throws SQLException
 	{
 		try
 		{
-			return new NERDropSource(
+			return new AtlasDropSource(
 				rs.getString("SOURCE"),
 				rs.getInt("QUANTITY_LOW"),
 				rs.getInt("QUANTITY_HIGH"),

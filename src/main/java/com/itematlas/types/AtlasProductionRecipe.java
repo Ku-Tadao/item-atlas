@@ -8,10 +8,10 @@ import lombok.RequiredArgsConstructor;
 
 @Data
 @RequiredArgsConstructor
-public class NERProductionRecipe
+public class AtlasProductionRecipe
 {
 	private final String ticks;
-	private final List<NERProductionMaterial> materials;
+	private final List<AtlasProductionMaterial> materials;
 
 	@Nullable
 	private final String facilities;
@@ -19,7 +19,7 @@ public class NERProductionRecipe
 	@Nullable
 	private final String tools;
 
-	private final List<NERProductionSkill> skills;
+	private final List<AtlasProductionSkill> skills;
 
 	@SerializedName("members")
 	private final boolean isMembers;

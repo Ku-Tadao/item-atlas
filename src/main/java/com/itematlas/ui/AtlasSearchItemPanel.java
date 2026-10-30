@@ -19,15 +19,15 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.ColorScheme;
 
 @Slf4j
-class NERSearchItemPanel extends JPanel
+class AtlasSearchItemPanel extends JPanel
 {
 	private static final Dimension ICON_SIZE = new Dimension(32, 32);
 
-	NERSearchItemPanel(NERItemGroup itemGroup, NERPanel mainPanel)
+	AtlasSearchItemPanel(AtlasItemGroup itemGroup, AtlasPanel mainPanel)
 	{
 			log.debug("creating search item panel group: {}", itemGroup.getGroup());
-			Optional<NERItem> searchedItemOpt = itemGroup.getItems().stream().filter((groupItem) -> Objects.equals(groupItem.getInfoItem().getVersion(), itemGroup.getSelectedVersion())).findFirst();
-			NERItem searchedItem = searchedItemOpt.orElseGet(() -> itemGroup.getItems().get(0));
+			Optional<AtlasItem> searchedItemOpt = itemGroup.getItems().stream().filter((groupItem) -> Objects.equals(groupItem.getInfoItem().getVersion(), itemGroup.getSelectedVersion())).findFirst();
+			AtlasItem searchedItem = searchedItemOpt.orElseGet(() -> itemGroup.getItems().get(0));
 			log.debug(String.valueOf(searchedItem));
 			log.debug("creating search item panel: {}", searchedItem.getInfoItem().getName());
 

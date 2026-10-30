@@ -1,7 +1,7 @@
 package com.itematlas;
 
 import com.google.common.collect.ImmutableMap;
-import com.itematlas.types.NERDropSource;
+import com.itematlas.types.AtlasDropSource;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
 
@@ -19,7 +19,7 @@ public class RarityParser
 		.put("Varies", 1 / 4096D)
 		.build();
 	
-	public double calculateRarity(NERDropSource dropSource)
+	public double calculateRarity(AtlasDropSource dropSource)
 	{
 		return calculateRarity(dropSource.getRarity());
 	}

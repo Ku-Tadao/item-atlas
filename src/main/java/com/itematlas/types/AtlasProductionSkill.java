@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 
 @Data
 @RequiredArgsConstructor
-public class NERProductionSkill
+public class AtlasProductionSkill
 {
 	private final String name;
 	private final String level;

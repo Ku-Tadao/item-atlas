@@ -11,9 +11,9 @@ import net.runelite.client.events.PluginMessage;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginManager;
 
-final class NERSourceRouteUtil
+final class AtlasSourceRouteUtil
 {
-	private NERSourceRouteUtil()
+	private AtlasSourceRouteUtil()
 	{
 	}
 

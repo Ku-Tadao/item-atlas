@@ -4,7 +4,7 @@ import com.google.common.base.Strings;
 import com.itematlas.db.H2DataProvider;
 import com.itematlas.db.queries.ItemGroupQuery;
 import com.itematlas.db.queries.SearchItemsQuery;
-import com.itematlas.types.NERInfoItem;
+import com.itematlas.types.AtlasInfoItem;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Dimension;
@@ -32,7 +32,7 @@ import net.runelite.client.util.AsyncBufferedImage;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 
 @Slf4j
-class NERSearchResultsPanel extends JPanel
+class AtlasSearchResultsPanel extends JPanel
 {
 	private static final int MAX_RESULTS = 200;
 	private static final String ERROR_PANEL = "ERROR_PANEL";
@@ -45,17 +45,17 @@ class NERSearchResultsPanel extends JPanel
 	private final JPanel centerPanel = new JPanel(cardLayout);
 	private final PluginErrorPanel errorPanel = new PluginErrorPanel();
 
-	private List<NERInfoItem> results = new ArrayList<>();
+	private List<AtlasInfoItem> results = new ArrayList<>();
 	private final ClientThread clientThread;
 	private final ItemManager itemManager;
 	private final H2DataProvider dataProvider;
-	private final NERPanel parentPanel;
+	private final AtlasPanel parentPanel;
 
-	NERSearchResultsPanel(
+	AtlasSearchResultsPanel(
 		ClientThread clientThread,
 		ItemManager itemManager,
 		H2DataProvider dataProvider,
-		NERPanel parentPanel
+		AtlasPanel parentPanel
 	)
 	{
 		this.clientThread = clientThread;
@@ -147,10 +147,10 @@ class NERSearchResultsPanel extends JPanel
 		this.dataProvider.executeMany(new SearchItemsQuery(search), searchResults ->
 			this.clientThread.invokeLater(() ->
 			{
-				Map<String, List<NERInfoItem>> groupedResults = new HashMap<>();
+				Map<String, List<AtlasInfoItem>> groupedResults = new HashMap<>();
 				searchResults.forEach((itemInfo) ->
 				{
-					List<NERInfoItem> group;
+					List<AtlasInfoItem> group;
 					if (groupedResults.containsKey(itemInfo.getGroup()))
 					{
 						group = groupedResults.get(itemInfo.getGroup());
@@ -164,9 +164,9 @@ class NERSearchResultsPanel extends JPanel
 				});
 
 				groupedResults.forEach((groupName, group) -> {
-					group.sort(Comparator.comparing(NERInfoItem::getItemID));
-					Optional<NERInfoItem> defaultItem = group.stream().filter(NERInfoItem::isDefaultVersion).findFirst();
-					NERInfoItem itemResult;
+					group.sort(Comparator.comparing(AtlasInfoItem::getItemID));
+					Optional<AtlasInfoItem> defaultItem = group.stream().filter(AtlasInfoItem::isDefaultVersion).findFirst();
+					AtlasInfoItem itemResult;
 					itemResult = defaultItem.orElseGet(() -> group.get(0));
 
 					results.add(itemResult);
@@ -231,18 +231,18 @@ class NERSearchResultsPanel extends JPanel
 			return;
 		}
 
-		NERInfoItem item = results.get(0);
+		AtlasInfoItem item = results.get(0);
 
 		this.dataProvider.executeMany(new ItemGroupQuery(item.getGroup()), infoItems ->
 			clientThread.invokeLater(() ->
 			{
-				List<NERItem> nerItems = infoItems.stream().map((groupItem) -> {
+				List<AtlasItem> atlasItems = infoItems.stream().map((groupItem) -> {
 					AsyncBufferedImage itemImage = this.itemManager.getImage(itemManager.canonicalize(groupItem.getItemID()));
-					return new NERItem(itemImage, groupItem);
+					return new AtlasItem(itemImage, groupItem);
 				}).collect(Collectors.toList());
 
 
-				NERItemGroup itemGroup = new NERItemGroup(item.getGroup(), item.getVersion(), nerItems);
+				AtlasItemGroup itemGroup = new AtlasItemGroup(item.getGroup(), item.getVersion(), atlasItems);
 				parentPanel.displayItem(itemGroup);
 			})
 		);
@@ -260,7 +260,7 @@ class NERSearchResultsPanel extends JPanel
 
 			AtomicInteger index = new AtomicInteger();
 
-			for (NERInfoItem infoItem : results)
+			for (AtlasInfoItem infoItem : results)
 			{
 				if ((index.get() + 1) > MAX_RESULTS)
 				{
@@ -272,15 +272,15 @@ class NERSearchResultsPanel extends JPanel
 					clientThread.invokeLater(() -> {
 						log.debug("processing results");
 
-						List<NERItem> nerItems = new ArrayList<>();
-						infoItems.forEach((item) -> nerItems.add(new NERItem(this.itemManager.getImage(itemManager.canonicalize(item.getItemID())), item)));
+						List<AtlasItem> atlasItems = new ArrayList<>();
+						infoItems.forEach((item) -> atlasItems.add(new AtlasItem(this.itemManager.getImage(itemManager.canonicalize(item.getItemID())), item)));
 
-						NERItemGroup itemGroup = new NERItemGroup(infoItem.getGroup(), infoItem.getVersion(), nerItems);
+						AtlasItemGroup itemGroup = new AtlasItemGroup(infoItem.getGroup(), infoItem.getVersion(), atlasItems);
 
 						SwingUtilities.invokeLater(() -> {
 							log.debug("processing results in swing");
 
-							NERSearchItemPanel panel = new NERSearchItemPanel(itemGroup, parentPanel);
+							AtlasSearchItemPanel panel = new AtlasSearchItemPanel(itemGroup, parentPanel);
 							if (index.getAndIncrement() > 0)
 							{
 								JPanel marginWrapper = new JPanel(new BorderLayout());
@@ -305,9 +305,9 @@ class NERSearchResultsPanel extends JPanel
 
 	}
 
-	private Comparator<NERInfoItem> compareNameAndGroup(String itemName)
+	private Comparator<AtlasInfoItem> compareNameAndGroup(String itemName)
 	{
-		return Comparator.comparing((NERInfoItem item) -> new LevenshteinDistance().apply(item.getName(), itemName))
+		return Comparator.comparing((AtlasInfoItem item) -> new LevenshteinDistance().apply(item.getName(), itemName))
 			.thenComparing(item -> new LevenshteinDistance().apply(item.getGroup(), itemName));
 
 	}

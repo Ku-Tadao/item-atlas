@@ -6,14 +6,14 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-public class NERSourceRouteUtilTest
+public class AtlasSourceRouteUtilTest
 {
 	@Test
 	public void parsesValidWorldPoints()
 	{
-		assertEquals(new WorldPoint(0, 16383, 0), NERSourceRouteUtil.parseWorldPoint("0,16383", "0"));
-		assertEquals(new WorldPoint(3200, 3201, 3), NERSourceRouteUtil.parseWorldPoint("3200,3201", "3"));
-		assertEquals(new WorldPoint(1380, 2932, 0), NERSourceRouteUtil.parseWorldPoint("1380, 2932", " 0 "));
+		assertEquals(new WorldPoint(0, 16383, 0), AtlasSourceRouteUtil.parseWorldPoint("0,16383", "0"));
+		assertEquals(new WorldPoint(3200, 3201, 3), AtlasSourceRouteUtil.parseWorldPoint("3200,3201", "3"));
+		assertEquals(new WorldPoint(1380, 2932, 0), AtlasSourceRouteUtil.parseWorldPoint("1380, 2932", " 0 "));
 	}
 
 	@Test
@@ -37,7 +37,7 @@ public class NERSourceRouteUtilTest
 
 		for (String[] point : invalid)
 		{
-			assertNull(NERSourceRouteUtil.parseWorldPoint(point[0], point[1]));
+			assertNull(AtlasSourceRouteUtil.parseWorldPoint(point[0], point[1]));
 		}
 	}
 }

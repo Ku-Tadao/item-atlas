@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 
 @Data
 @RequiredArgsConstructor
-public class NERShop
+public class AtlasShop
 {
 	private final String name;
 	private final String sellMultiplier;
@@ -15,5 +15,5 @@ public class NERShop
 	private final String coords;
 	private final String plane;
 	private final String mapID;
-	private final List<NERShopItem> items;
+	private final List<AtlasShopItem> items;
 }

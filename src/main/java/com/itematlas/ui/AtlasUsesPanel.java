@@ -7,8 +7,8 @@ import com.itematlas.config.DefaultOpenUses;
 import com.itematlas.db.H2DataProvider;
 import com.itematlas.db.queries.ItemCurrencyQuery;
 import com.itematlas.db.queries.ItemProducesQuery;
-import com.itematlas.types.NERProductionRecipe;
-import com.itematlas.types.NERShop;
+import com.itematlas.types.AtlasProductionRecipe;
+import com.itematlas.types.AtlasShop;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
@@ -42,7 +42,7 @@ import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.SwingUtil;
 
-class NERUsesPanel extends JPanel
+class AtlasUsesPanel extends JPanel
 {
 	private static final ImageIcon SECTION_EXPAND_ICON;
 	private static final ImageIcon SECTION_EXPAND_ICON_HOVER;
@@ -52,7 +52,7 @@ class NERUsesPanel extends JPanel
 	static final ImageIcon BACK_ICON;
 	static final ImageIcon BACK_ICON_HOVER;
 
-	private final NERItem nerItem;
+	private final AtlasItem atlasItem;
 	private final H2DataProvider dataProvider;
 	private final ItemManager itemManager;
 	private final ClientThread clientThread;
@@ -60,7 +60,7 @@ class NERUsesPanel extends JPanel
 	private final EventBus eventBus;
 	private final PluginManager pluginManager;
 	private final String useName;
-	private final NERPanel mainPanel;
+	private final AtlasPanel mainPanel;
 	private final ItemAtlasConfig config;
 
 	static
@@ -78,9 +78,9 @@ class NERUsesPanel extends JPanel
 		SECTION_RETRACT_ICON_HOVER = new ImageIcon(ImageUtil.alphaOffset(sectionExpandIcon, -100));
 	}
 
-	NERUsesPanel(NERItem nerItem, ItemManager itemManager, H2DataProvider dataProvider, ClientThread clientThread, NERPanel mainPanel, ItemAtlasConfig config, Client client, EventBus eventBus, PluginManager pluginManager)
+	AtlasUsesPanel(AtlasItem atlasItem, ItemManager itemManager, H2DataProvider dataProvider, ClientThread clientThread, AtlasPanel mainPanel, ItemAtlasConfig config, Client client, EventBus eventBus, PluginManager pluginManager)
 	{
-		this.nerItem = nerItem;
+		this.atlasItem = atlasItem;
 		this.dataProvider = dataProvider;
 		this.itemManager = itemManager;
 		this.clientThread = clientThread;
@@ -90,19 +90,19 @@ class NERUsesPanel extends JPanel
 		this.eventBus = eventBus;
 		this.pluginManager = pluginManager;
 
-		this.useName = nerItem.getInfoItem().getName().length() > nerItem.getInfoItem().getGroup().length()
-			? nerItem.getInfoItem().getName()
-			: nerItem.getInfoItem().getGroup();
+		this.useName = atlasItem.getInfoItem().getName().length() > atlasItem.getInfoItem().getGroup().length()
+			? atlasItem.getInfoItem().getName()
+			: atlasItem.getInfoItem().getGroup();
 
 		setLayout(new BorderLayout());
 
-		dataProvider.executeMany(new ItemProducesQuery(nerItem.getInfoItem().getItemID()), recipes ->
+		dataProvider.executeMany(new ItemProducesQuery(atlasItem.getInfoItem().getItemID()), recipes ->
 			dataProvider.executeMany(new ItemCurrencyQuery(useName), shops ->
 				SwingUtilities.invokeLater(() ->
 					buildPanel(recipes, shops))));
 	}
 
-	private void buildPanel(List<NERProductionRecipe> recipes, List<NERShop> shops)
+	private void buildPanel(List<AtlasProductionRecipe> recipes, List<AtlasShop> shops)
 	{
 		GridBagConstraints containerGbc = new GridBagConstraints(
 			0,
@@ -139,20 +139,20 @@ class NERUsesPanel extends JPanel
 		add(scrollWrapper, BorderLayout.CENTER);
 	}
 
-	private JPanel createSection(UseSectionType useSectionType, List<NERProductionRecipe> recipes, List<NERShop> shops)
+	private JPanel createSection(UseSectionType useSectionType, List<AtlasProductionRecipe> recipes, List<AtlasShop> shops)
 	{
 		ArrayList<JPanel> sectionItems = new ArrayList<>();
 		switch (useSectionType)
 		{
 			case RECIPES:
 				recipes.forEach((recipe) ->
-					sectionItems.add(new NERRecipePanel(recipe, itemManager, clientThread, mainPanel, nerItem.getInfoItem(), dataProvider)));
+					sectionItems.add(new AtlasRecipePanel(recipe, itemManager, clientThread, mainPanel, atlasItem.getInfoItem(), dataProvider)));
 				break;
 
 			case SHOPS:
 				if (!shops.isEmpty())
 				{
-					sectionItems.add(new NERShopsPanel(shops, nerItem, itemManager, clientThread, true, mainPanel, client, eventBus, pluginManager));
+					sectionItems.add(new AtlasShopsPanel(shops, atlasItem, itemManager, clientThread, true, mainPanel, client, eventBus, pluginManager));
 				}
 				break;
 		}

@@ -1,13 +1,13 @@
 package com.itematlas.db.queries;
 
-import com.itematlas.types.NERInfoItem;
+import com.itematlas.types.AtlasInfoItem;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class SearchItemsQuery extends ModeledQuery<NERInfoItem>
+public class SearchItemsQuery extends ModeledQuery<AtlasInfoItem>
 {
 
 	private final String searchTerms;
@@ -29,11 +29,11 @@ public class SearchItemsQuery extends ModeledQuery<NERInfoItem>
 	}
 
 	@Override
-	public NERInfoItem convertRow(ResultSet rs) throws SQLException
+	public AtlasInfoItem convertRow(ResultSet rs) throws SQLException
 	{
 		try
 		{
-			return new NERInfoItem(
+			return new AtlasInfoItem(
 				rs.getInt("ID"),
 				rs.getString("NAME"),
 				rs.getString("EXAMINE_TEXT"),

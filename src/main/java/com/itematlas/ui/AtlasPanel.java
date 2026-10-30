@@ -6,7 +6,7 @@ import com.itematlas.ItemAtlasPlugin;
 import com.itematlas.db.H2DataProvider;
 import com.itematlas.db.queries.ItemByIDQuery;
 import com.itematlas.db.queries.ItemGroupQuery;
-import com.itematlas.types.NERInfoItem;
+import com.itematlas.types.AtlasInfoItem;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.util.List;
@@ -29,7 +29,7 @@ import net.runelite.client.ui.components.IconTextField;
 import net.runelite.client.util.AsyncBufferedImage;
 
 @Slf4j
-public class NERPanel extends PluginPanel
+public class AtlasPanel extends PluginPanel
 {
 	private final IconTextField searchBar = new IconTextField();
 	private final ClientThread clientThread;
@@ -42,17 +42,17 @@ public class NERPanel extends PluginPanel
 
 	public final static int MAX_ENTRIES = 100;
 
-	private NERItemPanel itemPanel;
-//	private NERItemPanel prevItemPanel;
+	private AtlasItemPanel itemPanel;
+//	private AtlasItemPanel prevItemPanel;
 
 	private JPanel currentPanel;
 
 	@Getter
-	private final NERSearchResultsPanel searchResultsPanel;
+	private final AtlasSearchResultsPanel searchResultsPanel;
 	private boolean showUses = false;
 
 	@Inject
-	private NERPanel(
+	private AtlasPanel(
 		ItemAtlasPlugin plugin,
 		ClientThread clientThread,
 		ItemManager itemManager,
@@ -65,7 +65,7 @@ public class NERPanel extends PluginPanel
 	)
 	{
 		super(false);
-		this.searchResultsPanel = new NERSearchResultsPanel(clientThread, itemManager, dataProvider, this);
+		this.searchResultsPanel = new AtlasSearchResultsPanel(clientThread, itemManager, dataProvider, this);
 		this.clientThread = clientThread;
 		this.itemManager = itemManager;
 		this.dataProvider = dataProvider;
@@ -99,7 +99,7 @@ public class NERPanel extends PluginPanel
 //			log.info("previous item exists");
 //			SwingUtilities.invokeLater(() ->
 //			{
-//				itemPanel = new NERItemPanel(prevItemPanel.item, itemManager, nerData, clientThread, this);
+//				itemPanel = new AtlasItemPanel(prevItemPanel.item, itemManager, atlasData, clientThread, this);
 //				remove(searchResultsPanel);
 //				add(itemPanel, BorderLayout.CENTER);
 //				this.updateUI();
@@ -122,7 +122,7 @@ public class NERPanel extends PluginPanel
 			remove(itemPanel);
 			SwingUtilities.invokeLater(() ->
 			{
-//				prevItemPanel = new NERItemPanel(itemPanel.item, itemManager, nerData, clientThread, this);
+//				prevItemPanel = new AtlasItemPanel(itemPanel.item, itemManager, atlasData, clientThread, this);
 				this.updateUI();
 				itemPanel = null;
 			});
@@ -146,7 +146,7 @@ public class NERPanel extends PluginPanel
 			remove(itemPanel);
 			SwingUtilities.invokeLater(() ->
 			{
-//				prevItemPanel = new NERItemPanel(itemPanel.item, itemManager, nerData, clientThread, this);
+//				prevItemPanel = new AtlasItemPanel(itemPanel.item, itemManager, atlasData, clientThread, this);
 				this.updateUI();
 				itemPanel = null;
 			});
@@ -157,13 +157,13 @@ public class NERPanel extends PluginPanel
 		searchBar.setEditable(true);
 	}
 
-	void displayItem(NERItemGroup itemGroup) {
+	void displayItem(AtlasItemGroup itemGroup) {
 		displayItem(itemGroup, false);
 	}
 
-	void displayItem(NERItemGroup itemGroup, boolean showUses)
+	void displayItem(AtlasItemGroup itemGroup, boolean showUses)
 	{
-		itemPanel = new NERItemPanel(itemGroup, itemManager, dataProvider, clientThread, this, config, client, eventBus, pluginManager, showUses);
+		itemPanel = new AtlasItemPanel(itemGroup, itemManager, dataProvider, clientThread, this, config, client, eventBus, pluginManager, showUses);
 		remove(currentPanel);
 		currentPanel = itemPanel;
 		add(itemPanel, BorderLayout.CENTER);
@@ -199,34 +199,34 @@ public class NERPanel extends PluginPanel
 		});
 	}
 
-	void getNerItem(NERInfoItem itemInfo)
+	void getNerItem(AtlasInfoItem itemInfo)
 	{
 		this.dataProvider.executeMany(new ItemGroupQuery(itemInfo.getGroup()), infoItems ->
 			clientThread.invokeLater(() ->
 				{
-				List<NERItem> nerItems = infoItems.stream().map((groupItem) -> {
+				List<AtlasItem> atlasItems = infoItems.stream().map((groupItem) -> {
 					AsyncBufferedImage itemImage = this.itemManager.getImage(itemManager.canonicalize(groupItem.getItemID()));
-					return new NERItem(itemImage, groupItem);
+					return new AtlasItem(itemImage, groupItem);
 				}).collect(Collectors.toList());
 
-				NERItemGroup itemGroup = new NERItemGroup(itemInfo.getGroup(), itemInfo.getVersion(), nerItems);
+				AtlasItemGroup itemGroup = new AtlasItemGroup(itemInfo.getGroup(), itemInfo.getVersion(), atlasItems);
 				SwingUtilities.invokeLater(() -> displayItem(itemGroup, showUses));
 			})
 		);
 	}
 
-//	public NERInfoItem getItemByNameAndVersion(String itemName, String version)
+//	public AtlasInfoItem getItemByNameAndVersion(String itemName, String version)
 //	{
-//		List<NERInfoItem> matchedItems = dataProvider.executeMany(new WideSearchItemsQuery(itemName));
+//		List<AtlasInfoItem> matchedItems = dataProvider.executeMany(new WideSearchItemsQuery(itemName));
 //
 //		return matchedItems.stream()
 //			.min(compareNameAndGroup(itemName, version))
-//			.orElse(new NERInfoItem(0, "", "", "", "", "", false, false));
+//			.orElse(new AtlasInfoItem(0, "", "", "", "", "", false, false));
 //	}
 //
-//	private static Comparator<NERInfoItem> compareNameAndGroup(String itemName, String version)
+//	private static Comparator<AtlasInfoItem> compareNameAndGroup(String itemName, String version)
 //	{
-//		return Comparator.comparing((NERInfoItem item) -> new LevenshteinDistance().apply(item.getName(), itemName))
+//		return Comparator.comparing((AtlasInfoItem item) -> new LevenshteinDistance().apply(item.getName(), itemName))
 //			.thenComparing(item -> new LevenshteinDistance().apply(item.getGroup(), itemName))
 //			.thenComparing(item -> new LevenshteinDistance().apply(item.getVersion() != null ? item.getVersion() : "", version != null ? version : ""));
 //

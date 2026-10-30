@@ -1,6 +1,6 @@
 package com.itematlas.ui;
 
-import com.itematlas.types.NERSpawnItem;
+import com.itematlas.types.AtlasSpawnItem;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
@@ -28,13 +28,13 @@ import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ImageUtil;
 
-public class NERSpawnPanel extends JPanel
+public class AtlasSpawnPanel extends JPanel
 {
 	
-	private static final BufferedImage MEMBERS_ICON = ImageUtil.loadImageResource(NERSpawnPanel.class, "members.png");
-	private static final BufferedImage F2P_ICON = ImageUtil.loadImageResource(NERSpawnPanel.class, "free_to_play.png");
+	private static final BufferedImage MEMBERS_ICON = ImageUtil.loadImageResource(AtlasSpawnPanel.class, "members.png");
+	private static final BufferedImage F2P_ICON = ImageUtil.loadImageResource(AtlasSpawnPanel.class, "free_to_play.png");
 	
-	public NERSpawnPanel(NERSpawnItem spawn, ClientThread clientThread, Client client, EventBus eventBus, PluginManager pluginManager)
+	public AtlasSpawnPanel(AtlasSpawnItem spawn, ClientThread clientThread, Client client, EventBus eventBus, PluginManager pluginManager)
 	{
 		setMaximumSize(new Dimension(PluginPanel.PANEL_WIDTH, 200));
 		setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -61,9 +61,9 @@ public class NERSpawnPanel extends JPanel
 				playerWP = null;
 			}
 
-			spawnWP = NERSourceRouteUtil.parseWorldPoint(spawn.getCoords(), spawn.getPlane());
+			spawnWP = AtlasSourceRouteUtil.parseWorldPoint(spawn.getCoords(), spawn.getPlane());
 
-			NERSourceRouteUtil.Router router = NERSourceRouteUtil.findActiveRouter(pluginManager);
+			AtlasSourceRouteUtil.Router router = AtlasSourceRouteUtil.findActiveRouter(pluginManager);
 
 			JPopupMenu menu = new JPopupMenu("Menu");
 			if (spawnWP != null && playerWP != null && router != null) {
