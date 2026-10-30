@@ -82,6 +82,7 @@ public class H2DataProvider implements AutoCloseable
 		if (!initialized)
 		{
 			callback.accept(Collections.emptyList());
+			return;
 		}
 
 		DB_THREAD.submit(() ->

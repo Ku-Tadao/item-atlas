@@ -1,7 +1,6 @@
 package com.itematlas.ui;
 
 import com.itematlas.ItemAtlasConfig;
-import com.itematlas.ItemAtlasPlugin;
 import com.itematlas.ItemOwnership;
 import com.itematlas.LocationRequirements;
 import com.itematlas.RarityParser;
@@ -24,9 +23,6 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,17 +30,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
-import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.MatteBorder;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
@@ -54,25 +45,13 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.PluginManager;
-import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.ui.DynamicGridLayout;
-import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
-import net.runelite.client.util.ImageUtil;
-import net.runelite.client.util.SwingUtil;
 
 @Slf4j
 class AtlasSourcesPanel extends JPanel
 {
-	private static final ImageIcon SECTION_EXPAND_ICON;
 	// open state of the sections the player toggled, for this session
 	private static final Map<String, Boolean> openSections = new HashMap<>();
-	private static final ImageIcon SECTION_EXPAND_ICON_HOVER;
-	private static final ImageIcon SECTION_RETRACT_ICON;
-	private static final ImageIcon SECTION_RETRACT_ICON_HOVER;
-
-	static final ImageIcon BACK_ICON;
-	static final ImageIcon BACK_ICON_HOVER;
 
 	private final AtlasItem atlasItem;
 	private final H2DataProvider dataProvider;
@@ -84,21 +63,6 @@ class AtlasSourcesPanel extends JPanel
 	private final AtlasPanel mainPanel;
 	private final ItemAtlasConfig config;
 	private final ItemOwnership itemOwnership;
-
-	static
-	{
-		final BufferedImage backIcon = ImageUtil.loadImageResource(ItemAtlasPlugin.class, "ui/config_back_icon.png");
-		BACK_ICON = new ImageIcon(backIcon);
-		BACK_ICON_HOVER = new ImageIcon(ImageUtil.alphaOffset(backIcon, -100));
-
-		BufferedImage sectionRetractIcon = ImageUtil.loadImageResource(ItemAtlasPlugin.class, "ui/arrow_right.png");
-		sectionRetractIcon = ImageUtil.luminanceOffset(sectionRetractIcon, -121);
-		SECTION_EXPAND_ICON = new ImageIcon(sectionRetractIcon);
-		SECTION_EXPAND_ICON_HOVER = new ImageIcon(ImageUtil.alphaOffset(sectionRetractIcon, -100));
-		final BufferedImage sectionExpandIcon = ImageUtil.rotateImage(sectionRetractIcon, Math.PI / 2);
-		SECTION_RETRACT_ICON = new ImageIcon(sectionExpandIcon);
-		SECTION_RETRACT_ICON_HOVER = new ImageIcon(ImageUtil.alphaOffset(sectionExpandIcon, -100));
-	}
 
 	AtlasSourcesPanel(AtlasItem atlasItem, ItemManager itemManager, H2DataProvider dataProvider, ClientThread clientThread, AtlasPanel mainPanel, ItemAtlasConfig config, Client client, EventBus eventBus, PluginManager pluginManager, ItemOwnership itemOwnership)
 	{
@@ -113,56 +77,30 @@ class AtlasSourcesPanel extends JPanel
 		this.pluginManager = pluginManager;
 		this.itemOwnership = itemOwnership;
 
-
 		setLayout(new BorderLayout());
 
-		dataProvider.executeMany(new ItemProducedByQuery(atlasItem.getInfoItem().getItemID()), recipes ->
-			dataProvider.executeMany(new ItemDropSourcesQuery(atlasItem.getInfoItem().getItemID()), dropSources ->
-				dataProvider.executeMany(new ItemSoldAtQuery(atlasItem.getInfoItem().getItemID()), shops ->
-					dataProvider.executeMany(new ItemSpawnQuery(atlasItem.getInfoItem().getItemID()), spawns ->
-						dataProvider.executeMany(new DropSourceLocationsQuery(atlasItem.getInfoItem().getItemID()), dropLocations ->
-							SwingUtilities.invokeLater(() ->
-								buildPanel(recipes, dropSources, shops, spawns, dropLocations)))))));
-	}
+		// the headers show straight away, and each section fills in as its query returns
+		AtlasSection recipesSection = section(SourceSectionType.RECIPES);
+		AtlasSection dropsSection = section(SourceSectionType.DROPS);
+		AtlasSection shopsSection = section(SourceSectionType.SHOPS);
+		AtlasSection spawnsSection = section(SourceSectionType.SPAWNS);
 
-	private void buildPanel(List<AtlasProductionRecipe> recipes, List<AtlasDropSource> dropSources, List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations)
-	{
-		if (recipes.isEmpty() && dropSources.isEmpty() && shops.isEmpty() && spawns.isEmpty())
-		{
-			add(AtlasSourceRouteUtil.noDataPanel("The wiki lists no way to get this item."), BorderLayout.NORTH);
-			revalidate();
-			return;
-		}
-
-		GridBagConstraints containerGbc = new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
-		JPanel recipeSection = createSection(SourceSectionType.RECIPES, recipes, dropSources, shops, spawns, dropLocations);
+		// row 0 is kept for the route button, added once every source is in
+		GridBagConstraints containerGbc = new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
 		JPanel container = new JPanel(new GridBagLayout());
-		if (config.routeShopSources() || config.routeGroundSpawnSources() || config.routeDropSources())
+		for (AtlasSection section : List.of(recipesSection, dropsSection, shopsSection, spawnsSection))
 		{
-			// a source can drop the item at several rates, e.g. per quantity; its best one counts
-			Map<String, Double> dropRarity = dropSources.stream()
-				.collect(Collectors.toMap(AtlasDropSource::getSource, RarityParser::calculateRarity, Math::max));
-			container.add(createRouteButton(shops, spawns, dropLocations, dropRarity), new GridBagConstraints(0, 0, 1, 1, 1.0, 0.0, GridBagConstraints.LINE_START, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 8, 0), 0, 0));
+			container.add(section, containerGbc);
 			containerGbc.gridy++;
 		}
-
-		container.add(recipeSection, containerGbc);
-		containerGbc.gridy++;
-		JPanel dropsSection = createSection(SourceSectionType.DROPS, recipes, dropSources, shops, spawns, dropLocations);
-		container.add(dropsSection, containerGbc);
-		containerGbc.gridy++;
-		JPanel shopsSection = createSection(SourceSectionType.SHOPS, recipes, dropSources, shops, spawns, dropLocations);
-		container.add(shopsSection, containerGbc);
-		containerGbc.gridy++;
-		JPanel spawnsSection = createSection(SourceSectionType.SPAWNS, recipes, dropSources, shops, spawns, dropLocations);
-		container.add(spawnsSection, containerGbc);
-		containerGbc.gridy++;
-
 
 		JPanel wrapper = new JPanel(new BorderLayout());
 
 		wrapper.setMaximumSize(new Dimension(220, Integer.MAX_VALUE));
 		wrapper.add(container, BorderLayout.NORTH);
+		// sits under the sections that have come in so far
+		JPanel loading = AtlasSourceRouteUtil.noDataPanel("Loading sources…");
+		wrapper.add(loading, BorderLayout.CENTER);
 
 		JScrollPane scrollWrapper = new JScrollPane(wrapper);
 		scrollWrapper.getVerticalScrollBar().setPreferredSize(new Dimension(12, 0));
@@ -171,114 +109,71 @@ class AtlasSourcesPanel extends JPanel
 		scrollWrapper.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
 		add(scrollWrapper, BorderLayout.CENTER);
-		revalidate();
+
+		int itemId = atlasItem.getInfoItem().getItemID();
+		dataProvider.executeMany(new ItemProducedByQuery(itemId), recipes ->
+		{
+			SwingUtilities.invokeLater(() -> recipesSection.fill(" (" + recipes.size() + ")", recipes.stream()
+				.map(recipe -> new AtlasRecipePanel(recipe, itemManager, clientThread, mainPanel, atlasItem.getInfoItem(), dataProvider))
+				.collect(Collectors.toList())));
+			dataProvider.executeMany(new ItemDropSourcesQuery(itemId), dropSources ->
+				dataProvider.executeMany(new DropSourceLocationsQuery(itemId), dropLocations ->
+				{
+					SwingUtilities.invokeLater(() -> fillDrops(dropsSection, dropSources, dropLocations));
+					dataProvider.executeMany(new ItemSoldAtQuery(itemId), shops ->
+					{
+						SwingUtilities.invokeLater(() -> shopsSection.fill(
+							" (" + Math.min(shops.stream().mapToInt(shop -> shop.getItems().size()).sum(), AtlasPanel.MAX_ENTRIES) + ")",
+							shops.isEmpty() ? List.of() : List.of(new AtlasShopsPanel(shops, atlasItem, itemManager, clientThread, false, mainPanel, client, eventBus, pluginManager, config.showMembersStar()))));
+						dataProvider.executeMany(new ItemSpawnQuery(itemId), spawns ->
+							SwingUtilities.invokeLater(() ->
+							{
+								spawnsSection.fill(" (" + spawns.size() + ")", spawns.stream()
+									.map(spawnItem -> new AtlasSpawnPanel(spawnItem, clientThread, client, eventBus, pluginManager, config.showMembersStar()))
+									.collect(Collectors.toList()));
+								wrapper.remove(loading);
+								finish(container, scrollWrapper, recipes, dropSources, shops, spawns, dropLocations);
+							}));
+					});
+				}));
+		});
 	}
 
-	private JPanel createSection(SourceSectionType sectionType, List<AtlasProductionRecipe> recipes, List<AtlasDropSource> dropSources, List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations)
+	private AtlasSection section(SourceSectionType sectionType)
 	{
-		ArrayList<JPanel> sectionItems = new ArrayList<>();
-		String count = "";
-		switch (sectionType)
+		return new AtlasSection(sectionType.sectionName, sectionType.sectionDesc, openSections,
+			config.defaultOpenSources().contains(DefaultOpenSources.of(sectionType)));
+	}
+
+	private void fillDrops(AtlasSection dropsSection, List<AtlasDropSource> dropSources, List<AtlasSourceLocation> dropLocations)
+	{
+		if (dropSources.isEmpty())
 		{
-			case RECIPES:
-				count = " (" + recipes.size() + ")";
-				recipes.forEach((recipe) ->
-						sectionItems.add(new AtlasRecipePanel(recipe, itemManager, clientThread, mainPanel, atlasItem.getInfoItem(), dataProvider)));
-				break;
-
-			case DROPS:
-				if (!dropSources.isEmpty()) {
-					count = " (" + Math.min(dropSources.stream().map(AtlasDropSource::getSource).distinct().count(), AtlasPanel.MAX_ENTRIES) + ")";
-					Map<String, List<AtlasSourceLocation>> locationsBySource = dropLocations.stream().collect(Collectors.groupingBy(AtlasSourceLocation::getSource));
-					sectionItems.add(new AtlasDropsPanel(new AtlasDropItem(atlasItem.getInfoItem().getName(), atlasItem.getInfoItem().getVersion(), dropSources), locationsBySource, clientThread, itemManager, eventBus, pluginManager, config, itemOwnership, mainPanel));
-				}
-				break;
-
-			case SHOPS:
-				if (!shops.isEmpty()) {
-					count = " (" + Math.min(shops.stream().mapToInt(shop -> shop.getItems().size()).sum(), AtlasPanel.MAX_ENTRIES) + ")";
-					sectionItems.add(new AtlasShopsPanel(shops, atlasItem, itemManager, clientThread, false, mainPanel, client, eventBus, pluginManager, config.showMembersStar()));
-				}
-				break;
-
-			case SPAWNS:
-				count = " (" + spawns.size() + ")";
-				spawns.forEach((spawnItem) ->
-						sectionItems.add(new AtlasSpawnPanel(spawnItem, clientThread, client, eventBus, pluginManager, config.showMembersStar())));
-//					.limit(MAX_ENTRIES)
-
-				break;
+			dropsSection.fill("", List.of());
+			return;
 		}
 
-		if (sectionItems.isEmpty())
+		Map<String, List<AtlasSourceLocation>> locationsBySource = dropLocations.stream().collect(Collectors.groupingBy(AtlasSourceLocation::getSource));
+		dropsSection.fill(" (" + Math.min(dropSources.stream().map(AtlasDropSource::getSource).distinct().count(), AtlasPanel.MAX_ENTRIES) + ")",
+			List.of(new AtlasDropsPanel(new AtlasDropItem(atlasItem.getInfoItem().getName(), atlasItem.getInfoItem().getVersion(), dropSources), locationsBySource, clientThread, itemManager, eventBus, pluginManager, config, itemOwnership, mainPanel)));
+	}
+
+	private void finish(JPanel container, JScrollPane scrollWrapper, List<AtlasProductionRecipe> recipes, List<AtlasDropSource> dropSources, List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations)
+	{
+		if (recipes.isEmpty() && dropSources.isEmpty() && shops.isEmpty() && spawns.isEmpty())
 		{
-			JPanel emptyPanel = new JPanel();
-			emptyPanel.setMinimumSize(new Dimension(0, 0));
-			emptyPanel.setMaximumSize(new Dimension(0, 0));
-			emptyPanel.setPreferredSize(new Dimension(0, 0));
-			return emptyPanel;
+			remove(scrollWrapper);
+			add(AtlasSourceRouteUtil.noDataPanel("The wiki lists no way to get this item."), BorderLayout.NORTH);
 		}
-
-		final JPanel section = new JPanel();
-		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-		section.setMinimumSize(new Dimension(210, 0));
-		section.setMaximumSize(new Dimension(220, 0));
-
-
-		final JPanel sectionHeader = new JPanel();
-		sectionHeader.setLayout(new BorderLayout());
-		sectionHeader.setMinimumSize(new Dimension(220, 0));
-		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
-		// border on the right only affects the width when closed, fixing the issue.
-		sectionHeader.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(0, 0, 3, 1)));
-		section.add(sectionHeader, BorderLayout.NORTH);
-
-		final JButton sectionToggle = new JButton(SECTION_EXPAND_ICON);
-		sectionToggle.setRolloverIcon(SECTION_EXPAND_ICON_HOVER);
-		sectionToggle.setPreferredSize(new Dimension(18, 0));
-		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
-		sectionToggle.setToolTipText("Expand");
-		SwingUtil.removeButtonDecorations(sectionToggle);
-		sectionHeader.add(sectionToggle, BorderLayout.WEST);
-
-		final JLabel sectionName = new JLabel(sectionType.sectionName + count);
-		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
-		sectionName.setFont(FontManager.getRunescapeBoldFont());
-		sectionName.setToolTipText(sectionType.sectionDesc);
-		sectionHeader.add(sectionName, BorderLayout.CENTER);
-
-		final JPanel sectionContents = new JPanel();
-		sectionContents.setLayout(new DynamicGridLayout(0, 1, 0, 10));
-		sectionContents.setMinimumSize(new Dimension(220, 0));
-		sectionContents.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(PluginPanel.BORDER_OFFSET, 0, PluginPanel.BORDER_OFFSET, 0)));
-		sectionContents.setVisible(false);
-		section.add(sectionContents, BorderLayout.SOUTH);
-
-		final MouseAdapter sectionAdapter = new MouseAdapter()
+		else if (config.routeShopSources() || config.routeGroundSpawnSources() || config.routeDropSources())
 		{
-			@Override
-			public void mouseClicked(MouseEvent e)
-			{
-				openSections.put(sectionType.sectionName, toggleSection(sectionToggle, sectionContents));
-			}
-		};
-		sectionToggle.addActionListener(actionEvent -> openSections.put(sectionType.sectionName, toggleSection(sectionToggle, sectionContents)));
-		sectionName.addMouseListener(sectionAdapter);
-		sectionHeader.addMouseListener(sectionAdapter);
-
-		sectionItems.forEach(sectionContents::add);
-
-		// a section the player opened or closed stays that way for the next item
-		if (openSections.getOrDefault(sectionType.sectionName, config.defaultOpenSources().contains(DefaultOpenSources.of(sectionType))))
-		{
-			toggleSection(sectionToggle, sectionContents);
+			// a source can drop the item at several rates, e.g. per quantity; its best one counts
+			Map<String, Double> dropRarity = dropSources.stream()
+				.collect(Collectors.toMap(AtlasDropSource::getSource, RarityParser::calculateRarity, Math::max));
+			container.add(createRouteButton(shops, spawns, dropLocations, dropRarity), new GridBagConstraints(0, 0, 1, 1, 1.0, 0.0, GridBagConstraints.LINE_START, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 8, 0), 0, 0));
 		}
-
-		return section;
+		revalidate();
+		repaint();
 	}
 
 	private JButton createRouteButton(List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations, Map<String, Double> dropRarity)
@@ -438,16 +333,5 @@ class AtlasSourcesPanel extends JPanel
 			routeButton.setEnabled(true);
 			routeButton.setToolTipText(tooltip);
 		});
-	}
-
-	private boolean toggleSection(JButton button, JPanel contents)
-	{
-		boolean newState = !contents.isVisible();
-		contents.setVisible(newState);
-		button.setIcon(newState ? SECTION_RETRACT_ICON : SECTION_EXPAND_ICON);
-		button.setRolloverIcon(newState ? SECTION_RETRACT_ICON_HOVER : SECTION_EXPAND_ICON_HOVER);
-		button.setToolTipText(newState ? "Retract" : "Expand");
-		SwingUtilities.invokeLater(contents::revalidate);
-		return newState;
 	}
 }
