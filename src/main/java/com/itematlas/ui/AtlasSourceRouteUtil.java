@@ -1,7 +1,10 @@
 package com.itematlas.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -9,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
+import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -25,9 +29,13 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
+import net.runelite.client.util.AsyncBufferedImage;
+import net.runelite.client.util.ImageUtil;
 
 final class AtlasSourceRouteUtil
 {
+	static final ImageIcon MEMBERS_ICON = new ImageIcon(ImageUtil.loadImageResource(AtlasSourceRouteUtil.class, "members.png"));
+
 	private AtlasSourceRouteUtil()
 	{
 	}
@@ -38,6 +46,55 @@ final class AtlasSourceRouteUtil
 	static String html(String text)
 	{
 		return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+	}
+
+	/**
+	 * Label text that wraps at {@code width} pixels instead of ending in an ellipsis.
+	 */
+	static String wrap(String text, int width)
+	{
+		return text == null ? null : "<html><div style='width:" + width + "px'>" + html(text) + "</div></html>";
+	}
+
+	/**
+	 * Marks a members-only source with the star, the way the wiki does.
+	 */
+	static void markMembers(JLabel label)
+	{
+		label.setIcon(MEMBERS_ICON);
+		label.setIconTextGap(4);
+	}
+
+	/**
+	 * A left-to-right row that wraps onto more lines within {@code width}.
+	 */
+	static JPanel flowPanel(int width)
+	{
+		return new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 1))
+		{
+			@Override
+			public Dimension getPreferredSize()
+			{
+				// FlowLayout wraps but asks for one row, so lay out at the width to measure the real height
+				setSize(width, Short.MAX_VALUE);
+				doLayout();
+				int height = 0;
+				for (Component component : getComponents())
+				{
+					height = Math.max(height, component.getY() + component.getHeight());
+				}
+				return new Dimension(width, height + 1);
+			}
+		};
+	}
+
+	/**
+	 * Sets a half-size item icon (18x16) for small-font lines, once the image has loaded.
+	 */
+	static void smallItemIcon(JLabel label, AsyncBufferedImage image)
+	{
+		image.onLoaded(() -> SwingUtilities.invokeLater(() ->
+			label.setIcon(new ImageIcon(ImageUtil.resizeImage(image, 18, 16, true)))));
 	}
 
 	/**

@@ -9,7 +9,6 @@ import com.itematlas.types.AtlasDropSource;
 import com.itematlas.types.AtlasSourceLocation;
 import static com.itematlas.ui.AtlasPanel.MAX_ENTRIES;
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -28,6 +27,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IntSummaryStatistics;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +50,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
+import net.runelite.client.game.ItemManager;
 import net.runelite.client.events.PluginMessage;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginManager;
@@ -106,16 +107,17 @@ public class AtlasDropsPanel extends JPanel
 		}
 	));
 
-	public AtlasDropsPanel(AtlasDropItem dropItem, Map<String, List<AtlasSourceLocation>> locationsBySource, ClientThread clientThread, EventBus eventBus, PluginManager pluginManager, ItemAtlasConfig config, ItemOwnership itemOwnership, AtlasPanel mainPanel)
+	public AtlasDropsPanel(AtlasDropItem dropItem, Map<String, List<AtlasSourceLocation>> locationsBySource, ClientThread clientThread, ItemManager itemManager, EventBus eventBus, PluginManager pluginManager, ItemAtlasConfig config, ItemOwnership itemOwnership, AtlasPanel mainPanel)
 	{
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
-		dropItem.getDropSources().stream()
-			.sorted(Comparator.comparing(RarityParser::calculateRarity, Comparator.reverseOrder()))
+		// best rate first: "Always" is 1, and rates the parser can't read sort last
+		mergeBySource(dropItem.getDropSources()).stream()
 			.limit(MAX_ENTRIES)
-			.forEachOrdered(dropSource ->
+			.forEachOrdered(drops ->
 			{
+				AtlasDropSource dropSource = drops.get(0);
 				JPanel container = new JPanel(new BorderLayout());
 				container.setBorder(new EmptyBorder(0, 0, 7, 0));
 				JPanel dropPanel = new JPanel(new GridBagLayout());
@@ -130,8 +132,7 @@ public class AtlasDropsPanel extends JPanel
 				gbc.fill = GridBagConstraints.BOTH;
 				gbc.weightx = 1.0;
 				gbc.insets = new Insets(0, 4, 0, 4);
-				JLabel dropName = new JLabel(dropSource.getSource());
-				dropName.setPreferredSize(new Dimension(0, 20));
+				JLabel dropName = new JLabel(AtlasSourceRouteUtil.wrap(displayName(dropSource.getSource()), 140));
 				dropPanel.add(dropName, gbc);
 
 				gbc.gridx = 0;
@@ -139,16 +140,20 @@ public class AtlasDropsPanel extends JPanel
 				gbc.gridwidth = 1;
 				gbc.weightx = 0.0;
 				gbc.fill = GridBagConstraints.NONE;
-				dropPanel.add(new JLabel(buildQuantityString(dropSource)), gbc);
+				dropPanel.add(new JLabel(drops.stream().map(AtlasDropsPanel::buildQuantityString).distinct().collect(Collectors.joining(" / "))), gbc);
 
-				JLabel dropType = new JLabel(dropSource.getDropLevel() + " " + dropSource.getDropType(), SwingConstants.CENTER);
+				String level = levelText(dropSource.getDropLevel());
+				JLabel dropType = new JLabel((level + " " + dropSource.getDropType()).trim(), SwingConstants.CENTER);
 				ImageIcon dropTypeIcon = new ImageIcon(new BufferedImage(1, 20, BufferedImage.TYPE_INT_ARGB));
 				if (Arrays.asList(dropTypes).contains(dropSource.getDropType())) {
 					dropTypeIcon = new ImageIcon(dropTypeImages.get(dropSource.getDropType()));
-					dropType.setText(dropSource.getDropLevel());
+					dropType.setText(level);
 				}
 				dropType.setIcon(dropTypeIcon);
-				dropType.setToolTipText(dropSource.getDropLevel());
+				if (dropSource.getDropLevel().contains(","))
+				{
+					dropType.setToolTipText("Levels " + dropSource.getDropLevel().replace(",", ", "));
+				}
 				dropType.setPreferredSize(new Dimension(20, 20));
 				gbc.gridx = 1;
 				gbc.weightx = 1.0;
@@ -156,9 +161,18 @@ public class AtlasDropsPanel extends JPanel
 				gbc.fill = GridBagConstraints.BOTH;
 				dropPanel.add(dropType, gbc);
 				
-				JLabel rarityLabel = new JLabel(dropSource.getRarity());
-				if (dropSource.getRarity().contains("/"))
-					addTooltip(rarityLabel, PERCENT_FORMAT.format(RarityParser.calculateRarity(dropSource)));
+				AtlasDropSource best = drops.stream().max(Comparator.comparingDouble(RarityParser::calculateRarity)).get();
+				JLabel rarityLabel = new JLabel(best.getRarity());
+				if (drops.stream().map(AtlasDropSource::getRarity).distinct().count() > 1)
+				{
+					// merged quantities with their own rates: show the best, list them all on hover
+					addTooltip(rarityLabel, "<html>" + drops.stream()
+						.map(drop -> buildQuantityString(drop) + ": " + drop.getRarity())
+						.distinct()
+						.collect(Collectors.joining("<br>")) + "</html>");
+				}
+				else if (best.getRarity().contains("/"))
+					addTooltip(rarityLabel, PERCENT_FORMAT.format(RarityParser.calculateRarity(best)));
 				gbc.gridx = 2;
 				gbc.anchor = GridBagConstraints.LINE_END;
 				gbc.fill = GridBagConstraints.NONE;
@@ -180,14 +194,18 @@ public class AtlasDropsPanel extends JPanel
 					if (requiredItem != null)
 					{
 						gbc.gridy++;
-						dropPanel.add(needsLabel(requiredItem, locations.get(0).getRequiredItemId(), clientThread, itemOwnership, mainPanel), gbc);
+						dropPanel.add(needsLabel(requiredItem, locations.get(0).getRequiredItemId(), clientThread, itemManager, itemOwnership, mainPanel), gbc);
 					}
 
 					JPanel locationList = createLocationList(locations, clientThread, eventBus, pluginManager, itemOwnership);
 					int count = locationList.getComponentCount();
-					gbc.gridy++;
 					gbc.fill = GridBagConstraints.HORIZONTAL;
-					dropPanel.add(AtlasSourceRouteUtil.collapseHeader(count + (count == 1 ? " location" : " locations"), locationList), gbc);
+					// a single location shows as is; only a list is worth collapsing
+					if (count > 1)
+					{
+						gbc.gridy++;
+						dropPanel.add(AtlasSourceRouteUtil.collapseHeader(count + " locations", locationList), gbc);
+					}
 					gbc.gridy++;
 					dropPanel.add(locationList, gbc);
 				}
@@ -278,9 +296,9 @@ public class AtlasDropsPanel extends JPanel
 	 * "Needs: Muddy key (in bank)"; the status is read on the client thread, so it fills in after.
 	 * Clicking it looks the key up, for where to get one.
 	 */
-	private static JLabel needsLabel(String requiredItem, int requiredItemId, ClientThread clientThread, ItemOwnership itemOwnership, AtlasPanel mainPanel)
+	private static JLabel needsLabel(String requiredItem, int requiredItemId, ClientThread clientThread, ItemManager itemManager, ItemOwnership itemOwnership, AtlasPanel mainPanel)
 	{
-		JLabel label = new JLabel("Needs: " + requiredItem);
+		JLabel label = new JLabel(AtlasSourceRouteUtil.wrap("Needs: " + requiredItem, 120));
 		label.setName(requiredItem);
 		label.setFont(FontManager.getRunescapeSmallFont());
 		label.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
@@ -300,7 +318,11 @@ public class AtlasDropsPanel extends JPanel
 		if (requiredItemId > 0)
 		{
 			needsLabels.put(label, requiredItemId);
-			clientThread.invokeLater(() -> showStatus(label, requiredItemId, itemOwnership));
+			clientThread.invokeLater(() ->
+			{
+				AtlasSourceRouteUtil.smallItemIcon(label, itemManager.getImage(requiredItemId));
+				showStatus(label, requiredItemId, itemOwnership);
+			});
 		}
 		return label;
 	}
@@ -322,10 +344,13 @@ public class AtlasDropsPanel extends JPanel
 	{
 		ItemOwnership.Status status = itemOwnership.status(itemId);
 		boolean missing = status == ItemOwnership.Status.MISSING;
+		boolean unchecked = status == ItemOwnership.Status.UNKNOWN || status == ItemOwnership.Status.GROUP_UNKNOWN;
 		SwingUtilities.invokeLater(() ->
 		{
-			label.setText("Needs: " + label.getName() + " (" + status.text + ")");
-			label.setForeground(missing ? ColorScheme.PROGRESS_ERROR_COLOR : ColorScheme.LIGHT_GRAY_COLOR);
+			label.setText(AtlasSourceRouteUtil.wrap("Needs: " + label.getName() + " (" + status.text + ")", 120));
+			label.setForeground(missing ? ColorScheme.PROGRESS_ERROR_COLOR
+				: unchecked ? ColorScheme.PROGRESS_INPROGRESS_COLOR
+				: ColorScheme.PROGRESS_COMPLETE_COLOR);
 			label.setToolTipText((missing ? "Routing skips this until you have one. " : "") + "Click to look up " + label.getName());
 		});
 	}
@@ -356,7 +381,7 @@ public class AtlasDropsPanel extends JPanel
 			row.setBorder(new EmptyBorder(1, 8, 1, 0));
 			if (membersByName.get(name))
 			{
-				row.setForeground(new Color(209, 174, 59));
+				AtlasSourceRouteUtil.markMembers(row);
 			}
 			String tooltip = tiles.isEmpty() ? name + " (no map tiles)" : name + " (right-click to path here)";
 			AtlasSourceLocation location = rowByName.get(name);
@@ -422,7 +447,52 @@ public class AtlasDropsPanel extends JPanel
 		return html.append("</html>").toString();
 	}
 
-	private String buildQuantityString(AtlasDropSource dropSource)
+	/**
+	 * One list per source, the wiki giving each quantity of a drop its own line; best rate first.
+	 */
+	static List<List<AtlasDropSource>> mergeBySource(List<AtlasDropSource> dropSources)
+	{
+		return dropSources.stream()
+			.sorted(Comparator.comparingInt(AtlasDropSource::getQuantityLow))
+			.collect(Collectors.groupingBy(AtlasDropSource::getSource, LinkedHashMap::new, Collectors.toList()))
+			.values().stream()
+			.sorted(Comparator.comparingDouble((List<AtlasDropSource> drops) ->
+				drops.stream().mapToDouble(RarityParser::calculateRarity).max().orElse(0)).reversed())
+			.collect(Collectors.toList());
+	}
+
+	/**
+	 * "Bronze dragon#Standard" reads "Bronze dragon (Standard)".
+	 */
+	static String displayName(String source)
+	{
+		int hash = source.indexOf('#');
+		return hash < 0 ? source : source.substring(0, hash) + " (" + source.substring(hash + 1) + ")";
+	}
+
+	/**
+	 * "50" reads "Lvl 50", and a list like "13,24,76" reads "Lvl 13–76".
+	 */
+	static String levelText(String levels)
+	{
+		if (levels.isBlank())
+		{
+			return "";
+		}
+		try
+		{
+			IntSummaryStatistics stats = Arrays.stream(levels.split(","))
+				.mapToInt(level -> Integer.parseInt(level.trim()))
+				.summaryStatistics();
+			return stats.getMin() == stats.getMax() ? "Lvl " + stats.getMin() : "Lvl " + stats.getMin() + "–" + stats.getMax();
+		}
+		catch (NumberFormatException e)
+		{
+			return levels;
+		}
+	}
+
+	private static String buildQuantityString(AtlasDropSource dropSource)
 	{
 		if (dropSource.getQuantityLow() == dropSource.getQuantityHigh())
 		{

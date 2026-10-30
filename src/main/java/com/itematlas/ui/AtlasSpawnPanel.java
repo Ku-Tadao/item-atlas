@@ -33,7 +33,6 @@ import net.runelite.client.util.ImageUtil;
 public class AtlasSpawnPanel extends JPanel
 {
 	
-	private static final BufferedImage MEMBERS_ICON = ImageUtil.loadImageResource(AtlasSpawnPanel.class, "members.png");
 	private static final BufferedImage F2P_ICON = ImageUtil.loadImageResource(AtlasSpawnPanel.class, "free_to_play.png");
 	
 	public AtlasSpawnPanel(AtlasSpawnItem spawn, ClientThread clientThread, Client client, EventBus eventBus, PluginManager pluginManager)
@@ -43,12 +42,10 @@ public class AtlasSpawnPanel extends JPanel
 		setBorder(new EmptyBorder(7, 7, 6, 7));
 		setLayout(new BorderLayout());
 
-		JLabel membersLabel = new JLabel(new ImageIcon(spawn.isMembers() ? MEMBERS_ICON : F2P_ICON));
+		JLabel membersLabel = new JLabel(spawn.isMembers() ? AtlasSourceRouteUtil.MEMBERS_ICON : new ImageIcon(F2P_ICON));
 		membersLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 5));
 		add(membersLabel, BorderLayout.WEST);
-		JLabel location = new JLabel(spawn.getLocation());
-		location.setPreferredSize(new Dimension(0, 20));
-		location.setToolTipText(spawn.getLocation());
+		JLabel location = new JLabel(AtlasSourceRouteUtil.wrap(spawn.getLocation(), 150));
 		add(location, BorderLayout.CENTER);
 
 		if (AtlasSourceRouteUtil.tilesOrCoords(spawn.getTiles(), spawn.getCoords(), spawn.getPlane()).isEmpty())

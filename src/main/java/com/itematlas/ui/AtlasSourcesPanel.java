@@ -28,6 +28,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,8 @@ import net.runelite.client.util.SwingUtil;
 class AtlasSourcesPanel extends JPanel
 {
 	private static final ImageIcon SECTION_EXPAND_ICON;
+	// open state of the sections the player toggled, for this session
+	private static final Map<String, Boolean> openSections = new HashMap<>();
 	private static final ImageIcon SECTION_EXPAND_ICON_HOVER;
 	private static final ImageIcon SECTION_RETRACT_ICON;
 	private static final ImageIcon SECTION_RETRACT_ICON_HOVER;
@@ -174,27 +177,32 @@ class AtlasSourcesPanel extends JPanel
 	private JPanel createSection(SourceSectionType sectionType, List<AtlasProductionRecipe> recipes, List<AtlasDropSource> dropSources, List<AtlasShop> shops, List<AtlasSpawnItem> spawns, List<AtlasSourceLocation> dropLocations)
 	{
 		ArrayList<JPanel> sectionItems = new ArrayList<>();
+		String count = "";
 		switch (sectionType)
 		{
 			case RECIPES:
+				count = " (" + recipes.size() + ")";
 				recipes.forEach((recipe) ->
 						sectionItems.add(new AtlasRecipePanel(recipe, itemManager, clientThread, mainPanel, atlasItem.getInfoItem(), dataProvider)));
 				break;
 
 			case DROPS:
 				if (!dropSources.isEmpty()) {
+					count = " (" + Math.min(dropSources.stream().map(AtlasDropSource::getSource).distinct().count(), AtlasPanel.MAX_ENTRIES) + ")";
 					Map<String, List<AtlasSourceLocation>> locationsBySource = dropLocations.stream().collect(Collectors.groupingBy(AtlasSourceLocation::getSource));
-					sectionItems.add(new AtlasDropsPanel(new AtlasDropItem(atlasItem.getInfoItem().getName(), atlasItem.getInfoItem().getVersion(), dropSources), locationsBySource, clientThread, eventBus, pluginManager, config, itemOwnership, mainPanel));
+					sectionItems.add(new AtlasDropsPanel(new AtlasDropItem(atlasItem.getInfoItem().getName(), atlasItem.getInfoItem().getVersion(), dropSources), locationsBySource, clientThread, itemManager, eventBus, pluginManager, config, itemOwnership, mainPanel));
 				}
 				break;
 
 			case SHOPS:
 				if (!shops.isEmpty()) {
+					count = " (" + Math.min(shops.stream().mapToInt(shop -> shop.getItems().size()).sum(), AtlasPanel.MAX_ENTRIES) + ")";
 					sectionItems.add(new AtlasShopsPanel(shops, atlasItem, itemManager, clientThread, false, mainPanel, client, eventBus, pluginManager));
 				}
 				break;
 
 			case SPAWNS:
+				count = " (" + spawns.size() + ")";
 				spawns.forEach((spawnItem) ->
 						sectionItems.add(new AtlasSpawnPanel(spawnItem, clientThread, client, eventBus, pluginManager)));
 //					.limit(MAX_ENTRIES)
@@ -235,7 +243,7 @@ class AtlasSourcesPanel extends JPanel
 		SwingUtil.removeButtonDecorations(sectionToggle);
 		sectionHeader.add(sectionToggle, BorderLayout.WEST);
 
-		final JLabel sectionName = new JLabel(sectionType.sectionName);
+		final JLabel sectionName = new JLabel(sectionType.sectionName + count);
 		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
 		sectionName.setFont(FontManager.getRunescapeBoldFont());
 		sectionName.setToolTipText(sectionType.sectionDesc);
@@ -255,16 +263,18 @@ class AtlasSourcesPanel extends JPanel
 			@Override
 			public void mouseClicked(MouseEvent e)
 			{
-				toggleSection(sectionToggle, sectionContents);
+				openSections.put(sectionType.sectionName, toggleSection(sectionToggle, sectionContents));
 			}
 		};
-		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContents));
+		sectionToggle.addActionListener(actionEvent -> openSections.put(sectionType.sectionName, toggleSection(sectionToggle, sectionContents)));
 		sectionName.addMouseListener(sectionAdapter);
 		sectionHeader.addMouseListener(sectionAdapter);
 
 		sectionItems.forEach(sectionContents::add);
 
-		if (config.defaultOpenSources().contains(DefaultOpenSources.of(sectionType))) {
+		// a section the player opened or closed stays that way for the next item
+		if (openSections.getOrDefault(sectionType.sectionName, config.defaultOpenSources().contains(DefaultOpenSources.of(sectionType))))
+		{
 			toggleSection(sectionToggle, sectionContents);
 		}
 
@@ -430,7 +440,7 @@ class AtlasSourcesPanel extends JPanel
 		});
 	}
 
-	private void toggleSection(JButton button, JPanel contents)
+	private boolean toggleSection(JButton button, JPanel contents)
 	{
 		boolean newState = !contents.isVisible();
 		contents.setVisible(newState);
@@ -438,5 +448,6 @@ class AtlasSourcesPanel extends JPanel
 		button.setRolloverIcon(newState ? SECTION_RETRACT_ICON_HOVER : SECTION_EXPAND_ICON_HOVER);
 		button.setToolTipText(newState ? "Retract" : "Expand");
 		SwingUtilities.invokeLater(contents::revalidate);
+		return newState;
 	}
 }

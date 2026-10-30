@@ -4,7 +4,6 @@ import com.itematlas.types.AtlasShop;
 import com.itematlas.types.AtlasShopItem;
 import static com.itematlas.ui.AtlasPanel.MAX_ENTRIES;
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import static java.awt.GridBagConstraints.BOTH;
@@ -79,15 +78,12 @@ public class AtlasShopsPanel extends JPanel
 				shopPanel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 
 				JLabel shopName = new JLabel();
-				shopName.setMaximumSize(new Dimension(0, 20));
-				shopName.setPreferredSize(new Dimension(0, 20));
-				shopName.setText(shop.getName());
-				shopName.setToolTipText(shop.getName());
+				shopName.setText(AtlasSourceRouteUtil.wrap(shop.getName(), shop.isMembers() ? 105 : 125));
 				JLabel location = new JLabel();
 
 				if (shop.isMembers())
 				{
-					shopName.setForeground(new Color(209, 174, 59));
+					AtlasSourceRouteUtil.markMembers(shopName);
 				}
 
 				shopPanel.add(shopName, new GridBagConstraints(0, row, 1, 1, 1.0, 0.0, LINE_START, BOTH, new Insets(0, 4, 0, 0), 4, 4));
@@ -209,10 +205,7 @@ public class AtlasShopsPanel extends JPanel
 					row++;
 				}
 
-				location.setMaximumSize(new Dimension(0, 20));
-				location.setPreferredSize(new Dimension(0, 20));
-				location.setText(shop.getLocation());
-				location.setToolTipText(shop.getLocation());
+				location.setText(AtlasSourceRouteUtil.wrap(shop.getLocation(), 125));
 				shopPanel.add(location, new GridBagConstraints(0, row, 1, 1, 1.0, 0.0, LINE_START, BOTH, new Insets(0, 4, 0, 0), 4, 4));
 				shopPanel.add(new JLabel("x" + shopItem.getStock()), new GridBagConstraints(1, row++, 1, 1, 0.1, 0.0, LINE_END, NONE, NO_INSETS, 4, 4));
 

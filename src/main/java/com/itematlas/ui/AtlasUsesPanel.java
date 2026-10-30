@@ -18,7 +18,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -45,13 +47,15 @@ import net.runelite.client.util.SwingUtil;
 class AtlasUsesPanel extends JPanel
 {
 	private static final ImageIcon SECTION_EXPAND_ICON;
+	// open state of the sections the player toggled, for this session
+	private static final Map<String, Boolean> openSections = new HashMap<>();
 	private static final ImageIcon SECTION_EXPAND_ICON_HOVER;
 	private static final ImageIcon SECTION_RETRACT_ICON;
 	private static final ImageIcon SECTION_RETRACT_ICON_HOVER;
 
 	static final ImageIcon BACK_ICON;
 
-	private static final int RECIPE_PAGE = 25;
+	private static final int RECIPE_PAGE = 50;
 	static final ImageIcon BACK_ICON_HOVER;
 
 	private final AtlasItem atlasItem;
@@ -113,7 +117,7 @@ class AtlasUsesPanel extends JPanel
 	private void addRecipes(JPanel contents, List<AtlasProductionRecipe> page, int offset)
 	{
 		page.stream().limit(RECIPE_PAGE).forEach(recipe ->
-			contents.add(new AtlasRecipePanel(recipe, itemManager, clientThread, mainPanel, atlasItem.getInfoItem(), dataProvider)));
+			contents.add(AtlasRecipePanel.collapsed(recipe, itemManager, clientThread, mainPanel, atlasItem.getInfoItem(), dataProvider)));
 
 		if (page.size() > RECIPE_PAGE)
 		{
@@ -183,12 +187,15 @@ class AtlasUsesPanel extends JPanel
 	private JPanel createSection(UseSectionType useSectionType, List<AtlasProductionRecipe> recipes, List<AtlasShop> shops)
 	{
 		ArrayList<JPanel> sectionItems = new ArrayList<>();
+		String count = "";
 		switch (useSectionType)
 		{
 			case RECIPES:
 				if (!recipes.isEmpty())
 				{
-					JPanel recipeList = new JPanel(new DynamicGridLayout(0, 1, 0, 10));
+					// one page is loaded, so more than a page reads "50+"
+					count = recipes.size() > RECIPE_PAGE ? " (" + RECIPE_PAGE + "+)" : " (" + recipes.size() + ")";
+					JPanel recipeList = new JPanel(new DynamicGridLayout(0, 1, 0, 4));
 					addRecipes(recipeList, recipes, 0);
 					sectionItems.add(recipeList);
 				}
@@ -197,6 +204,7 @@ class AtlasUsesPanel extends JPanel
 			case SHOPS:
 				if (!shops.isEmpty())
 				{
+					count = " (" + Math.min(shops.stream().mapToInt(shop -> shop.getItems().size()).sum(), AtlasPanel.MAX_ENTRIES) + ")";
 					sectionItems.add(new AtlasShopsPanel(shops, atlasItem, itemManager, clientThread, true, mainPanel, client, eventBus, pluginManager));
 				}
 				break;
@@ -232,7 +240,7 @@ class AtlasUsesPanel extends JPanel
 		SwingUtil.removeButtonDecorations(sectionToggle);
 		sectionHeader.add(sectionToggle, BorderLayout.WEST);
 
-		final JLabel sectionName = new JLabel(useSectionType.sectionName);
+		final JLabel sectionName = new JLabel(useSectionType.sectionName + count);
 		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
 		sectionName.setFont(FontManager.getRunescapeBoldFont());
 		sectionName.setToolTipText(useSectionType.sectionDesc);
@@ -253,23 +261,25 @@ class AtlasUsesPanel extends JPanel
 			@Override
 			public void mouseClicked(MouseEvent e)
 			{
-				toggleSection(sectionToggle, sectionContents);
+				openSections.put(useSectionType.sectionName, toggleSection(sectionToggle, sectionContents));
 			}
 		};
-		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContents));
+		sectionToggle.addActionListener(actionEvent -> openSections.put(useSectionType.sectionName, toggleSection(sectionToggle, sectionContents)));
 		sectionName.addMouseListener(sectionAdapter);
 		sectionHeader.addMouseListener(sectionAdapter);
 
 		sectionItems.forEach(sectionContents::add);
 
-		if (config.defaultOpenUses().contains(DefaultOpenUses.of(useSectionType))) {
+		// a section the player opened or closed stays that way for the next item
+		if (openSections.getOrDefault(useSectionType.sectionName, config.defaultOpenUses().contains(DefaultOpenUses.of(useSectionType))))
+		{
 			toggleSection(sectionToggle, sectionContents);
 		}
 
 		return section;
 	}
 
-	private void toggleSection(JButton button, JPanel contents)
+	private boolean toggleSection(JButton button, JPanel contents)
 	{
 		boolean newState = !contents.isVisible();
 		contents.setVisible(newState);
@@ -277,5 +287,6 @@ class AtlasUsesPanel extends JPanel
 		button.setRolloverIcon(newState ? SECTION_RETRACT_ICON_HOVER : SECTION_EXPAND_ICON_HOVER);
 		button.setToolTipText(newState ? "Retract" : "Expand");
 		SwingUtilities.invokeLater(contents::revalidate);
+		return newState;
 	}
 }

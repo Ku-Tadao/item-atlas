@@ -31,9 +31,16 @@ public class ItemProducesQuery extends ModeledQuery<AtlasProductionRecipe>
 			"WHERE ID IN (SELECT RECIPE_ID FROM PRODUCTION_MATERIALS WHERE ITEM_ID = ?) " +
 			// TOOLS is a comma separated list of wiki names
 			"OR (', ' || LOWER(TOOLS) || ', ') LIKE ? " +
-			"ORDER BY ID LIMIT ? OFFSET ?) " +
-			// convertRow reads one recipe's rows in a row
-			"ORDER BY PR.ID";
+			"ORDER BY " + order("PRODUCTION_RECIPES") + " LIMIT ? OFFSET ?) " +
+			// convertRow reads one recipe's rows in a row, so ID breaks the last tie
+			"ORDER BY " + order("PR");
+	}
+
+	// lowest skill level first (a recipe's highest skill counts), then by output name
+	private static String order(String table)
+	{
+		return "(SELECT MAX(CAST(LEVEL AS INTEGER)) FROM PRODUCTION_SKILLS WHERE RECIPE_ID = " + table + ".ID), "
+			+ table + ".OUTPUT_ITEM_NAME, " + table + ".ID";
 	}
 
 	@Override
