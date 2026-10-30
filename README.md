@@ -7,9 +7,9 @@ Where to get every item in Old School RuneScape and what it's used for: shops, d
 </p>
 
 <p align="center">
-  <img src="docs/images/search.png" alt="Searching for bronze items" width="240">
-  <img src="docs/images/sources.png" alt="Sources of a bronze bar, with drops expanded" width="240">
-  <img src="docs/images/uses.png" alt="Uses of a bronze bar, with a recipe card expanded" width="240">
+  <img src="docs/images/search.png" alt="Searching for bronze items" width="220">
+  <img src="docs/images/sources.png" alt="Sources of a bronze bar, with drops expanded" width="220">
+  <img src="docs/images/uses.png" alt="Uses of a bronze bar, with a recipe card expanded" width="220">
 </p>
 
 Item Atlas is a fork of [Not Enough Runes](https://github.com/Hannah-GBS/notenoughrunes) by Hannah_GBS and LlemonDuck (BSD 2-Clause, see [LICENSE](LICENSE)).
