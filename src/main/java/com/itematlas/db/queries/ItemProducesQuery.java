@@ -14,17 +14,21 @@ public class ItemProducesQuery extends ModeledQuery<AtlasProductionRecipe>
 {
 
 	private final int itemID;
+	private final String itemName;
 
 	@Override
 	public String getSql()
 	{
 		//language=SQL
 		return "SELECT PR.*, PS.*, PM.*, PR.ID AS PR_ID, PS.ID AS PS_ID, PM.ID AS PM_ID " +
-			"FROM PRODUCTION_MATERIALS PM_QUERY " +
-			"JOIN PRODUCTION_RECIPES PR ON PM_QUERY.RECIPE_ID = PR.ID " +
+			"FROM PRODUCTION_RECIPES PR " +
 			"LEFT JOIN PRODUCTION_SKILLS PS ON PR.ID = PS.RECIPE_ID " +
 			"LEFT JOIN PRODUCTION_MATERIALS PM ON PR.ID = PM.RECIPE_ID " +
-			"WHERE PM_QUERY.ITEM_ID = ? " +
+			"WHERE PR.ID IN (SELECT RECIPE_ID FROM PRODUCTION_MATERIALS WHERE ITEM_ID = ?) " +
+			// TOOLS is a comma separated list of wiki names
+			"OR (', ' || LOWER(PR.TOOLS) || ', ') LIKE ? " +
+			// convertRow reads one recipe's rows in a row
+			"ORDER BY PR.ID " +
 			"LIMIT 100";
 	}
 
@@ -32,6 +36,7 @@ public class ItemProducesQuery extends ModeledQuery<AtlasProductionRecipe>
 	public void setParams(PreparedStatement ps) throws SQLException
 	{
 		ps.setInt(1, itemID);
+		ps.setString(2, "%, " + itemName.toLowerCase() + ", %");
 	}
 
 	@Override

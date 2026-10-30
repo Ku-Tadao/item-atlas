@@ -96,7 +96,7 @@ class AtlasUsesPanel extends JPanel
 
 		setLayout(new BorderLayout());
 
-		dataProvider.executeMany(new ItemProducesQuery(atlasItem.getInfoItem().getItemID()), recipes ->
+		dataProvider.executeMany(new ItemProducesQuery(atlasItem.getInfoItem().getItemID(), atlasItem.getInfoItem().getName()), recipes ->
 			dataProvider.executeMany(new ItemCurrencyQuery(useName), shops ->
 				SwingUtilities.invokeLater(() ->
 					buildPanel(recipes, shops))));

@@ -2,6 +2,7 @@ package com.itematlas.ui;
 
 import com.itematlas.db.H2DataProvider;
 import com.itematlas.db.queries.ItemByIDQuery;
+import com.itematlas.db.queries.ItemByNameQuery;
 import com.itematlas.db.queries.ItemGroupQuery;
 import com.itematlas.types.AtlasInfoItem;
 import com.itematlas.types.AtlasProductionMaterial;
@@ -9,7 +10,6 @@ import com.itematlas.types.AtlasProductionRecipe;
 import com.itematlas.types.AtlasProductionSkill;
 import java.awt.Cursor;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.GridBagConstraints;
 import static java.awt.GridBagConstraints.BOTH;
 import static java.awt.GridBagConstraints.CENTER;
@@ -21,9 +21,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.font.TextAttribute;
 import java.awt.image.BufferedImage;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -32,7 +30,6 @@ import java.util.stream.Stream;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import lombok.extern.slf4j.Slf4j;
@@ -132,21 +129,6 @@ public class AtlasRecipePanel extends JPanel
 		setBorder(new EmptyBorder(7, 7, 6, 7));
 		int row = 0;
 
-		if (recipe.getFacilities() != null)
-		{
-			JLabel facilityLabel = new JLabel(recipe.getFacilities());
-			facilityLabel.setMaximumSize(new Dimension(0, 20));
-			facilityLabel.setPreferredSize(new Dimension(0, 20));
-			facilityLabel.setHorizontalAlignment(SwingConstants.CENTER);
-
-			if (facilityImages.containsKey(recipe.getFacilities()))
-			{
-				facilityLabel.setIcon(new ImageIcon(facilityImages.get(recipe.getFacilities())));
-			}
-
-			add(facilityLabel, new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, CENTER, BOTH, NO_INSETS, 4, 4));
-		}
-
 		JPanel skillsPanel = new JPanel(new GridBagLayout());
 		skillsPanel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		int skillsRow = 0;
@@ -173,13 +155,52 @@ public class AtlasRecipePanel extends JPanel
 
 		add(skillsPanel, new GridBagConstraints(0, row++, 4, 1, 0.0, 0.0, LINE_START, BOTH, NO_INSETS, 4, 4));
 
-		JLabel materialHeader = new JLabel("Materials");
-		add(materialHeader, new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, CENTER, NONE, NO_INSETS, 4, 4));
+		if (recipe.getFacilities() != null)
+		{
+			// several facilities are alternatives, e.g. "Blood Altar, Blood Altar (Kourend)"
+			add(new JLabel("Facility"), new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, CENTER, NONE, NO_INSETS, 4, 4));
+			for (String facility : recipe.getFacilities().split(", "))
+			{
+				JLabel facilityLabel = new JLabel(facility);
+				facilityLabel.setToolTipText(facility);
+				facilityLabel.setMaximumSize(new Dimension(0, 30));
+				facilityLabel.setPreferredSize(new Dimension(0, 30));
+				if (facilityImages.containsKey(facility))
+				{
+					facilityLabel.setIcon(new ImageIcon(facilityImages.get(facility)));
+				}
+				add(facilityLabel, new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, LINE_START, BOTH, NO_INSETS, 4, 4));
+			}
+		}
 
 		if (recipe.getTools() != null)
 		{
-			addTooltip(materialHeader, "Tools: " + recipe.getTools());
+			add(new JLabel("Tools"), new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, CENTER, NONE, NO_INSETS, 4, 4));
+			for (String tool : recipe.getTools().split(", "))
+			{
+				JLabel toolLabel = new JLabel(tool);
+				toolLabel.setToolTipText(tool);
+				toolLabel.setMaximumSize(new Dimension(0, 30));
+				toolLabel.setPreferredSize(new Dimension(0, 30));
+				add(toolLabel, new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, LINE_START, BOTH, NO_INSETS, 4, 4));
+
+				// spells like "Magic Imbue" aren't items and stay plain text
+				String itemName = tool.replace('_', ' ').replaceAll(" \\(.*\\)$", "");
+				dataProvider.executeSingle(new ItemByNameQuery(itemName), toolItem ->
+				{
+					if (toolItem != null)
+					{
+						SwingUtilities.invokeLater(() ->
+						{
+							setItemDetails(toolLabel, toolItem.getItemID(), tool);
+							addMouseAdapter(toolLabel, toolItem.getItemID(), atlasInfoItem.getItemID());
+						});
+					}
+				});
+			}
 		}
+
+		add(new JLabel("Materials"), new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, CENTER, NONE, NO_INSETS, 4, 4));
 
 		for (AtlasProductionMaterial material : recipe.getMaterials())
 		{
@@ -257,19 +278,6 @@ public class AtlasRecipePanel extends JPanel
 			})
 		);
 
-	}
-
-	private void addTooltip(JLabel toUnderline, String tooltip)
-	{
-		// add underline to text
-		Font f = toUnderline.getFont();
-		Map<TextAttribute, Object> attributes = new HashMap<>(f.getAttributes());
-		attributes.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_LOW_DOTTED);
-		toUnderline.setFont(f.deriveFont(attributes));
-		toUnderline.setText(toUnderline.getText());
-
-		// create hover tooltip
-		toUnderline.setToolTipText(tooltip);
 	}
 
 	private void addMouseAdapter(JLabel materialLabel, int itemID, int currentItemID)
