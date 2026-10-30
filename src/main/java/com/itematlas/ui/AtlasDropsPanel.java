@@ -4,12 +4,15 @@ import com.itematlas.ItemAtlasConfig;
 import com.itematlas.RarityParser;
 import com.itematlas.types.AtlasDropItem;
 import com.itematlas.types.AtlasDropSource;
+import com.itematlas.types.AtlasSourceLocation;
 import static com.itematlas.ui.AtlasPanel.MAX_ENTRIES;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
@@ -20,6 +23,9 @@ import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -33,13 +39,16 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.events.PluginMessage;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginManager;
 import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.FontManager;
 import net.runelite.client.util.ImageUtil;
 
 @Slf4j
@@ -88,7 +97,7 @@ public class AtlasDropsPanel extends JPanel
 		}
 	));
 
-	public AtlasDropsPanel(AtlasDropItem dropItem, Set<String> locatedSources, EventBus eventBus, PluginManager pluginManager, ItemAtlasConfig config)
+	public AtlasDropsPanel(AtlasDropItem dropItem, Map<String, List<AtlasSourceLocation>> locationsBySource, EventBus eventBus, PluginManager pluginManager, ItemAtlasConfig config)
 	{
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -147,13 +156,24 @@ public class AtlasDropsPanel extends JPanel
 				gbc.weightx = 0.0;
 				dropPanel.add(rarityLabel, gbc);
 
-				if (!locatedSources.contains(dropSource.getSource()))
+				gbc.gridx = 0;
+				gbc.gridwidth = 3;
+				gbc.anchor = GridBagConstraints.LINE_START;
+				List<AtlasSourceLocation> locations = locationsBySource.getOrDefault(dropSource.getSource(), List.of());
+				if (locations.isEmpty())
 				{
-					gbc.gridx = 0;
 					gbc.gridy++;
-					gbc.gridwidth = 3;
-					gbc.anchor = GridBagConstraints.LINE_START;
 					dropPanel.add(AtlasSourceRouteUtil.noLocationLabel(), gbc);
+				}
+				else
+				{
+					JPanel locationList = createLocationList(locations, eventBus, pluginManager);
+					int count = locationList.getComponentCount();
+					gbc.gridy++;
+					gbc.fill = GridBagConstraints.HORIZONTAL;
+					dropPanel.add(AtlasSourceRouteUtil.collapseHeader(count + (count == 1 ? " location" : " locations"), locationList), gbc);
+					gbc.gridy++;
+					dropPanel.add(locationList, gbc);
 				}
 
 				gbc.gridx = 0;
@@ -236,6 +256,62 @@ public class AtlasDropsPanel extends JPanel
 				add(container);
 			});
 		
+	}
+
+	/**
+	 * One row per named location of a mob; right-click a row to route to its nearest tile.
+	 */
+	private static JPanel createLocationList(List<AtlasSourceLocation> locations, EventBus eventBus, PluginManager pluginManager)
+	{
+		// the wiki can list one location on several lines, so merge rows by name
+		Map<String, Set<WorldPoint>> tilesByName = new LinkedHashMap<>();
+		Map<String, Boolean> membersByName = new HashMap<>();
+		for (AtlasSourceLocation location : locations)
+		{
+			String name = location.getLocation() == null || location.getLocation().isBlank() ? "Unnamed location" : location.getLocation();
+			tilesByName.computeIfAbsent(name, k -> new HashSet<>()).addAll(AtlasSourceRouteUtil.parseTiles(location.getTiles()));
+			membersByName.merge(name, location.isMembers(), Boolean::logicalAnd);
+		}
+
+		JPanel list = new JPanel(new GridLayout(0, 1));
+		list.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+		tilesByName.forEach((name, tiles) ->
+		{
+			JLabel row = new JLabel(name);
+			row.setFont(FontManager.getRunescapeSmallFont());
+			row.setBorder(new EmptyBorder(1, 8, 1, 0));
+			if (membersByName.get(name))
+			{
+				row.setForeground(new Color(209, 174, 59));
+			}
+			row.setToolTipText(tiles.isEmpty() ? name + " (no map tiles)" : name + " (right-click to path here)");
+			row.addMouseListener(new MouseAdapter()
+			{
+				@Override
+				public void mouseClicked(MouseEvent e)
+				{
+					if (!SwingUtilities.isRightMouseButton(e) || tiles.isEmpty())
+					{
+						return;
+					}
+					AtlasSourceRouteUtil.Router router = AtlasSourceRouteUtil.findActiveRouter(pluginManager);
+					JPopupMenu menu = new JPopupMenu();
+					JMenuItem item = new JMenuItem(new AbstractAction(router == null ? "Enable Shortest Path or GPS to route" : "Path with " + router.pluginName)
+					{
+						@Override
+						public void actionPerformed(ActionEvent event)
+						{
+							router.route(eventBus, Map.of("target", tiles));
+						}
+					});
+					item.setEnabled(router != null);
+					menu.add(item);
+					menu.show(row, e.getX(), e.getY());
+				}
+			});
+			list.add(row);
+		});
+		return list;
 	}
 
 	private String buildQuantityString(AtlasDropSource dropSource)

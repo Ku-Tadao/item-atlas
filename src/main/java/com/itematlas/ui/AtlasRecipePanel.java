@@ -169,7 +169,6 @@ public class AtlasRecipePanel extends JPanel
 			needsText.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 			List<String> textNeeds = new ArrayList<>();
 
-			// collapsed by default, like loot tracker boxes; click the header to show the strip
 			List<String> summary = new ArrayList<>();
 			if (recipe.getTools() != null)
 			{
@@ -180,26 +179,7 @@ public class AtlasRecipePanel extends JPanel
 			{
 				summary.add("a facility");
 			}
-			String summaryText = "Requires " + String.join(", ", summary);
-			JLabel needsHeader = new JLabel("+ " + summaryText);
-			needsHeader.setFont(FontManager.getRunescapeSmallFont());
-			needsHeader.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
-			needsHeader.setCursor(new Cursor(Cursor.HAND_CURSOR));
-			needsIcons.setVisible(false);
-			needsText.setVisible(false);
-			needsHeader.addMouseListener(new MouseAdapter()
-			{
-				@Override
-				public void mousePressed(MouseEvent e)
-				{
-					boolean show = !needsIcons.isVisible();
-					needsIcons.setVisible(show);
-					needsText.setVisible(show);
-					needsHeader.setText((show ? "- " : "+ ") + summaryText);
-					revalidate();
-					repaint();
-				}
-			});
+			JLabel needsHeader = AtlasSourceRouteUtil.collapseHeader("Requires " + String.join(", ", summary), needsIcons, needsText);
 			add(needsHeader, new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, LINE_START, BOTH, new Insets(2, 0, 0, 0), 0, 0));
 			add(needsIcons, new GridBagConstraints(0, row++, 4, 1, 0.0, 0.0, LINE_START, NONE, new Insets(2, 0, 2, 0), 0, 0));
 			add(needsText, new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, LINE_START, BOTH, NO_INSETS, 0, 0));

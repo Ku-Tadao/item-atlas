@@ -1,14 +1,19 @@
 package com.itematlas.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Cursor;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import lombok.RequiredArgsConstructor;
 import net.runelite.api.Constants;
@@ -36,6 +41,41 @@ final class AtlasSourceRouteUtil
 		label.setForeground(ColorScheme.MEDIUM_GRAY_COLOR);
 		label.setToolTipText("The wiki has no map location for this, so routing skips it.");
 		return label;
+	}
+
+	/**
+	 * A "+ summary" line that shows or hides the given parts when clicked. They start hidden, like loot tracker boxes.
+	 */
+	static JLabel collapseHeader(String summary, JComponent... parts)
+	{
+		JLabel header = new JLabel("+ " + summary);
+		header.setFont(FontManager.getRunescapeSmallFont());
+		header.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+		header.setCursor(new Cursor(Cursor.HAND_CURSOR));
+		for (JComponent part : parts)
+		{
+			part.setVisible(false);
+		}
+		header.addMouseListener(new MouseAdapter()
+		{
+			@Override
+			public void mousePressed(MouseEvent e)
+			{
+				if (!SwingUtilities.isLeftMouseButton(e))
+				{
+					return;
+				}
+				boolean show = !parts[0].isVisible();
+				for (JComponent part : parts)
+				{
+					part.setVisible(show);
+				}
+				header.setText((show ? "- " : "+ ") + summary);
+				header.getParent().revalidate();
+				header.getParent().repaint();
+			}
+		});
+		return header;
 	}
 
 	/**

@@ -175,8 +175,8 @@ class AtlasSourcesPanel extends JPanel
 
 			case DROPS:
 				if (!dropSources.isEmpty()) {
-					Set<String> locatedSources = dropLocations.stream().map(AtlasSourceLocation::getSource).collect(Collectors.toSet());
-					sectionItems.add(new AtlasDropsPanel(new AtlasDropItem(atlasItem.getInfoItem().getName(), atlasItem.getInfoItem().getVersion(), dropSources), locatedSources, eventBus, pluginManager, config));
+					Map<String, List<AtlasSourceLocation>> locationsBySource = dropLocations.stream().collect(Collectors.groupingBy(AtlasSourceLocation::getSource));
+					sectionItems.add(new AtlasDropsPanel(new AtlasDropItem(atlasItem.getInfoItem().getName(), atlasItem.getInfoItem().getVersion(), dropSources), locationsBySource, eventBus, pluginManager, config));
 				}
 				break;
 
