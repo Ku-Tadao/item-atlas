@@ -68,7 +68,7 @@ class AtlasItemPanel extends JPanel
 
 	@Getter
 	private final AtlasUsesPanel usesPanel;
-	private boolean showingUses;
+	boolean showingUses;
 	public AtlasItem selectedItem;
 	private final ClientThread clientThread;
 

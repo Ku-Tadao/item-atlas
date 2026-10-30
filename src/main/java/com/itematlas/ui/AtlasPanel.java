@@ -174,6 +174,17 @@ public class AtlasPanel extends PluginPanel
 		updateUI();
 	}
 
+	/**
+	 * Rebuilds the open item on the same tab, for config changes that affect how it's drawn.
+	 */
+	public void redisplayItem()
+	{
+		if (itemPanel != null && currentPanel == itemPanel)
+		{
+			displayItemById(itemPanel.selectedItem.getInfoItem().getItemID(), itemPanel.showingUses);
+		}
+	}
+
 	public void displayItemById(int rawItemId) {
 		displayItemById(rawItemId, false);
 	}

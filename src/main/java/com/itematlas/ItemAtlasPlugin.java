@@ -273,6 +273,10 @@ public class ItemAtlasPlugin extends Plugin
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event) {
 		if (event.getGroup().equals("itematlas")) {
+			if (event.getKey().equals("showMembersStar"))
+			{
+				SwingUtilities.invokeLater(atlasPanel::redisplayItem);
+			}
 			if (config.ccBroadcastLookup())
 			{
 				clientThread.invoke(this::matchMessages);
