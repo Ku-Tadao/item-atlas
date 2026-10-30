@@ -175,7 +175,7 @@ public class AtlasRecipePanel extends JPanel
 		if (recipe.getFacilities() != null || recipe.getTools() != null)
 		{
 			// "Requires: Hammer · Anvil", each with its icon where there is one
-			JPanel needs = AtlasSourceRouteUtil.flowPanel(185);
+			JPanel needs = AtlasSourceRouteUtil.flowPanel(165);
 			needs.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 			needs.add(needsLabel("Requires:"));
 			add(needs, new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, LINE_START, BOTH, new Insets(2, 0, 2, 0), 0, 0));
@@ -252,7 +252,7 @@ public class AtlasRecipePanel extends JPanel
 			.map(skill -> skill.getName() + " " + skill.getLevel() + " · " + skill.getExperience() + "xp")
 			.collect(Collectors.joining(", "));
 		String name = AtlasSourceRouteUtil.html(String.valueOf(recipe.getOutputItemName()));
-		JLabel summary = new JLabel("<html><div style='width:140px'>" + name
+		JLabel summary = new JLabel("<html><div style='width:120px'>" + name
 			+ (skills.isEmpty() ? "" : "<br><font color='#a5a5a5'>" + AtlasSourceRouteUtil.html(skills) + "</font>") + "</div></html>");
 		summary.setOpaque(true);
 		summary.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -327,10 +327,10 @@ public class AtlasRecipePanel extends JPanel
 					label.setIcon(new ImageIcon(itemImage));
 					if (itemId != BANK_FILLER_ID)
 					{
-						label.setText(AtlasSourceRouteUtil.wrap(itemComposition.getName(), 115));
+						label.setText(AtlasSourceRouteUtil.wrap(itemComposition.getName(), 100));
 						label.setToolTipText(itemComposition.getName());
 					} else {
-						label.setText(AtlasSourceRouteUtil.wrap(itemName, 115));
+						label.setText(AtlasSourceRouteUtil.wrap(itemName, 100));
 						label.setToolTipText(itemName);
 					}
 
