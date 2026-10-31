@@ -1,76 +1,19 @@
 package com.itematlas.db.queries;
 
+import com.itematlas.db.AtlasData;
 import com.itematlas.types.AtlasShop;
-import com.itematlas.types.AtlasShopItem;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class ItemCurrencyQuery extends ModeledQuery<AtlasShop>
 {
-	
+
 	private final String name;
 
 	@Override
-	public String getSql()
+	public List<AtlasShop> run(AtlasData data)
 	{
-		//language=SQL
-		return "SELECT S.*, SI.*, S.ID AS SHOP_ID, S.NAME AS SHOP_NAME, SI.ID AS SHOP_ITEM_ID FROM SHOPS S " +
-			"JOIN SHOP_ITEMS SI ON S.ID = SI.SHOP_ID " +
-//			"WHERE EXISTS (" +
-//			"	SELECT 1 FROM SHOP_ITEMS SI " +
-//			"	WHERE S.ID = SI.SHOP_ID " +
-//			"		AND SI.CURRENCY = ?)";
-			// don't *need* all shop items, just matching ones
-			"WHERE SI.CURRENCY = ?";
-	}
-
-	@Override
-	public void setParams(PreparedStatement ps) throws SQLException
-	{
-		ps.setString(1, name);
-	}
-
-	@Override
-	public AtlasShop convertRow(ResultSet rs) throws SQLException
-	{
-		int id = rs.getInt("SHOP_ID");
-		AtlasShop res = new AtlasShop(
-			rs.getString("SHOP_NAME"),
-			rs.getString("SELL_MULTIPLIER"),
-			rs.getString("LOCATION"),
-			rs.getBoolean("IS_MEMBERS"),
-			rs.getString("COORDS"),
-			rs.getString("TILES"),
-			rs.getString("PLANE"),
-			rs.getString("MAP_ID"),
-			new ArrayList<>()
-		);
-
-		do
-		{
-			if (rs.getInt("SHOP_ITEM_ID") != 0)
-			{
-				AtlasShopItem shopItem = new AtlasShopItem(
-					rs.getString("ITEM_NAME"),
-					rs.getString("ITEM_VERSION"),
-					rs.getInt("ITEM_ID"),
-					rs.getString("CURRENCY"),
-					rs.getString("STOCK"),
-					rs.getString("BUY_PRICE"),
-					rs.getString("SELL_PRICE")
-				);
-
-				if (!res.getItems().contains(shopItem))
-				{
-					res.getItems().add(shopItem);
-				}
-			}
-		} while (rs.next() && rs.getInt("SHOP_ID") == id);
-
-		return res;
+		return ItemSoldAtQuery.shopsSelling(data, shopItem -> name.equals(shopItem.str("CURRENCY")));
 	}
 }

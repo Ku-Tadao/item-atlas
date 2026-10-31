@@ -1,9 +1,9 @@
 package com.itematlas.db.queries;
 
+import com.itematlas.db.AtlasData;
 import com.itematlas.types.AtlasDropSource;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -13,36 +13,23 @@ public class ItemDropSourcesQuery extends ModeledQuery<AtlasDropSource>
 	private final int itemId;
 
 	@Override
-	public String getSql()
+	public List<AtlasDropSource> run(AtlasData data)
 	{
-		//language=SQL	
-		return "SELECT * FROM DROP_SOURCES DS " +
-			"WHERE ITEM_ID = ?";
-	}
-
-	@Override
-	public void setParams(PreparedStatement ps) throws SQLException
-	{
-		ps.setInt(1, itemId);
-	}
-
-	@Override
-	public AtlasDropSource convertRow(ResultSet rs) throws SQLException
-	{
-		try
+		List<AtlasDropSource> res = new ArrayList<>();
+		for (AtlasData.Row drop : data.table("DROP_SOURCES"))
 		{
-			return new AtlasDropSource(
-				rs.getString("SOURCE"),
-				rs.getInt("QUANTITY_LOW"),
-				rs.getInt("QUANTITY_HIGH"),
-				rs.getString("RARITY"),
-				rs.getString("DROP_LEVEL"),
-				rs.getString("DROP_TYPE")
-			);
+			if (drop.integer("ITEM_ID") == itemId)
+			{
+				res.add(new AtlasDropSource(
+					drop.str("SOURCE"),
+					drop.integer("QUANTITY_LOW"),
+					drop.integer("QUANTITY_HIGH"),
+					drop.str("RARITY"),
+					drop.str("DROP_LEVEL"),
+					drop.str("DROP_TYPE")
+				));
+			}
 		}
-		finally
-		{
-			rs.next();
-		}
+		return res;
 	}
 }

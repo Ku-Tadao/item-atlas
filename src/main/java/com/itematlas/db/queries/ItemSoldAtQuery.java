@@ -1,77 +1,65 @@
 package com.itematlas.db.queries;
 
+import com.itematlas.db.AtlasData;
 import com.itematlas.types.AtlasShop;
 import com.itematlas.types.AtlasShopItem;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class ItemSoldAtQuery extends ModeledQuery<AtlasShop>
 {
-	
+
 	private final int itemID;
 
 	@Override
-	public String getSql()
+	public List<AtlasShop> run(AtlasData data)
 	{
-		//language=SQL
-		return "SELECT S.*, SI.*, S.ID AS SHOP_ID, S.NAME AS SHOP_NAME, SI.ID AS SHOP_ITEM_ID FROM SHOPS S " +
-			"JOIN SHOP_ITEMS SI ON S.ID = SI.SHOP_ID " +
-//			"WHERE EXISTS (" +
-//			"	SELECT 1 FROM SHOP_ITEMS SI " +
-//			"	WHERE S.ID = SI.SHOP_ID " +
-//			"		AND SI.ITEM_NAME = ?" +
-//			"		AND (SI.ITEM_VERSION IS NULL OR ? IS NULL OR SI.ITEM_VERSION = ?))";
-			// don't *need* all shop items, just matching ones
-			"WHERE SI.ITEM_ID = ?";
+		return shopsSelling(data, shopItem -> shopItem.integer("ITEM_ID") == itemID);
 	}
 
-	@Override
-	public void setParams(PreparedStatement ps) throws SQLException
+	// each shop holds only the matching items, not its whole stock
+	static List<AtlasShop> shopsSelling(AtlasData data, Predicate<AtlasData.Row> matches)
 	{
-		ps.setInt(1, itemID);
-	}
-
-	@Override
-	public AtlasShop convertRow(ResultSet rs) throws SQLException
-	{
-		int id = rs.getInt("SHOP_ID");
-		AtlasShop res = new AtlasShop(
-			rs.getString("SHOP_NAME"),
-			rs.getString("SELL_MULTIPLIER"),
-			rs.getString("LOCATION"),
-			rs.getBoolean("IS_MEMBERS"),
-			rs.getString("COORDS"),
-			rs.getString("TILES"),
-			rs.getString("PLANE"),
-			rs.getString("MAP_ID"),
-			new ArrayList<>()
-		);
-
-		do
+		Map<Integer, AtlasShop> shops = new LinkedHashMap<>();
+		for (AtlasData.Row shopItem : data.table("SHOP_ITEMS"))
 		{
-			if (rs.getInt("SHOP_ITEM_ID") != 0)
+			AtlasData.Row shop = data.byId("SHOPS", shopItem.integer("SHOP_ID"));
+			if (shop == null || !matches.test(shopItem))
 			{
-				AtlasShopItem shopItem = new AtlasShopItem(
-					rs.getString("ITEM_NAME"),
-					rs.getString("ITEM_VERSION"),
-					rs.getInt("ITEM_ID"),
-					rs.getString("CURRENCY"),
-					rs.getString("STOCK"),
-					rs.getString("BUY_PRICE"),
-					rs.getString("SELL_PRICE")
-				);
-
-				if (!res.getItems().contains(shopItem))
-				{
-					res.getItems().add(shopItem);
-				}
+				continue;
 			}
-		} while (rs.next() && rs.getInt("SHOP_ID") == id);
 
-		return res;
+			AtlasShop res = shops.computeIfAbsent(shop.integer("ID"), id -> new AtlasShop(
+				shop.str("NAME"),
+				shop.str("SELL_MULTIPLIER"),
+				shop.str("LOCATION"),
+				shop.bool("IS_MEMBERS"),
+				shop.str("COORDS"),
+				shop.str("TILES"),
+				shop.str("PLANE"),
+				shop.str("MAP_ID"),
+				new ArrayList<>()
+			));
+
+			AtlasShopItem item = new AtlasShopItem(
+				shopItem.str("ITEM_NAME"),
+				shopItem.str("ITEM_VERSION"),
+				shopItem.integer("ITEM_ID"),
+				shopItem.str("CURRENCY"),
+				shopItem.str("STOCK"),
+				shopItem.str("BUY_PRICE"),
+				shopItem.str("SELL_PRICE")
+			);
+			if (!res.getItems().contains(item))
+			{
+				res.getItems().add(item);
+			}
+		}
+		return new ArrayList<>(shops.values());
 	}
 }

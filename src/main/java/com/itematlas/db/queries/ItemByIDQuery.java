@@ -1,9 +1,9 @@
 package com.itematlas.db.queries;
 
+import com.itematlas.db.AtlasData;
 import com.itematlas.types.AtlasInfoItem;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.util.Collections;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -13,41 +13,25 @@ public class ItemByIDQuery extends ModeledQuery<AtlasInfoItem>
 	private final int itemID;
 
 	@Override
-	public String getSql()
+	public List<AtlasInfoItem> run(AtlasData data)
 	{
-		//language=SQL
-		return "SELECT I.*, IG.NAME AS GROUP_NAME FROM ITEMS I " +
-			"LEFT JOIN ITEM_GROUPS IG on IG.ID = I.GROUP_ID " +
-			"WHERE I.ID = ? " +
-			"LIMIT 200";
+		AtlasData.Row item = data.byId("ITEMS", itemID);
+		return item == null ? Collections.emptyList() : List.of(toItem(data, item));
 	}
 
-	@Override
-	public void setParams(PreparedStatement ps) throws SQLException
+	static AtlasInfoItem toItem(AtlasData data, AtlasData.Row item)
 	{
-		ps.setInt(1, itemID);
-	}
-
-	@Override
-	public AtlasInfoItem convertRow(ResultSet rs) throws SQLException
-	{
-		try
-		{
-			return new AtlasInfoItem(
-				rs.getInt("ID"),
-				rs.getString("NAME"),
-				rs.getString("EXAMINE_TEXT"),
-				rs.getString("GROUP_NAME"),
-				rs.getString("VERSION"),
-				rs.getString("URL"),
-				rs.getBoolean("IS_MEMBERS"),
-				rs.getBoolean("IS_TRADEABLE"),
-				rs.getBoolean("IS_DEFAULT_VERSION")
-			);
-		}
-		finally
-		{
-			rs.next();
-		}
+		AtlasData.Row group = data.byId("ITEM_GROUPS", item.integer("GROUP_ID"));
+		return new AtlasInfoItem(
+			item.integer("ID"),
+			item.str("NAME"),
+			item.str("EXAMINE_TEXT"),
+			group == null ? null : group.str("NAME"),
+			item.str("VERSION"),
+			item.str("URL"),
+			item.bool("IS_MEMBERS"),
+			item.bool("IS_TRADEABLE"),
+			item.bool("IS_DEFAULT_VERSION")
+		);
 	}
 }

@@ -2,73 +2,50 @@ package com.itematlas.db;
 
 import com.google.common.base.Stopwatch;
 import com.itematlas.db.queries.ModeledQuery;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.zip.GZIPInputStream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.util.Filepath;
 
 @Singleton
 @RequiredArgsConstructor(onConstructor_ = @Inject)
 @Slf4j
-public class H2DataProvider implements AutoCloseable
+public class H2DataProvider
 {
 
 	private static final ExecutorService DB_THREAD = Executors.newSingleThreadExecutor();
 
 	private final H2DbFetcher dbFetcher;
 
-	private Connection db;
-	private boolean initialized = false;
+	private volatile AtlasData data;
 
-	public void init()
+	public void init(Filepath dir)
 	{
-		initialized = false;
-
-		dbFetcher.fetch(() ->
+		dbFetcher.fetch(dir, file ->
 			DB_THREAD.submit(() ->
 			{
-				try
+				Stopwatch sw = Stopwatch.createStarted();
+				try (Reader in = new InputStreamReader(new GZIPInputStream(file.openInputStream()), StandardCharsets.UTF_8))
 				{
-					Class.forName("org.sqlite.JDBC");
-					String dbPath = H2DbFetcher.dbFile.getAbsolutePath();
-					log.debug("Creating db connection to {}", dbPath);
-					db = DriverManager.getConnection(buildConnectionString(dbPath));
+					data = AtlasData.read(in);
+					log.debug("Loaded {} in {}ms", file, sw.elapsed(TimeUnit.MILLISECONDS));
 				}
-				catch (ClassNotFoundException e)
+				catch (Exception e)
 				{
-					log.error("Failed to load SQLite JDBC driver class", e);
+					log.error("Failed to load the data file", e);
 				}
-				catch (SQLException e)
-				{
-					log.error("Failed to open connection to database file", e);
-				}
-
-				initialized = true;
 			}));
-	}
-
-	@Override
-	public void close() throws Exception
-	{
-		initialized = false;
-		db.close();
-	}
-
-	private static String buildConnectionString(String fileName)
-	{
-		return "jdbc:sqlite:" + fileName;
 	}
 
 	public <T> void executeSingle(ModeledQuery<T> query, Consumer<T> callback)
@@ -79,7 +56,8 @@ public class H2DataProvider implements AutoCloseable
 
 	public <T> void executeMany(ModeledQuery<T> query, Consumer<List<T>> callback)
 	{
-		if (!initialized)
+		AtlasData data = this.data;
+		if (data == null)
 		{
 			callback.accept(Collections.emptyList());
 			return;
@@ -88,44 +66,19 @@ public class H2DataProvider implements AutoCloseable
 		DB_THREAD.submit(() ->
 		{
 			Stopwatch sw = Stopwatch.createStarted();
-			try (PreparedStatement ps = createStatement(query.getSql()))
+			List<T> res;
+			try
 			{
-				query.setParams(ps);
-
-				try (ResultSet rs = ps.executeQuery())
-				{
-					List<T> res = new ArrayList<>();
-					if (rs.next())
-					{
-						while (!rs.isAfterLast())
-						{
-							res.add(query.convertRow(rs));
-						}
-					}
-
-					callback.accept(res);
-				}
+				res = query.run(data);
 			}
 			catch (Exception e)
 			{
-				log.warn("Query failed in wrapMany", e);
-				callback.accept(Collections.emptyList());
+				log.warn("Query failed in executeMany", e);
+				res = Collections.emptyList();
 			}
-			finally
-			{
-				log.debug("[{}μs] Query {}", sw.elapsed(TimeUnit.MICROSECONDS), query.getSql());
-			}
+			log.debug("[{}μs] Query {}", sw.elapsed(TimeUnit.MICROSECONDS), query.getClass().getSimpleName());
+			callback.accept(res);
 		});
-	}
-
-	private PreparedStatement createStatement(String sql) throws SQLException
-	{
-		if (!initialized)
-		{
-			throw new IllegalStateException("Cannot createStatement on a closed connection");
-		}
-
-		return db.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
 	}
 
 }

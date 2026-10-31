@@ -1,12 +1,11 @@
 package com.itematlas.db.queries;
 
+import com.itematlas.db.AtlasData;
 import com.itematlas.types.AtlasProductionMaterial;
 import com.itematlas.types.AtlasProductionRecipe;
 import com.itematlas.types.AtlasProductionSkill;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -16,74 +15,85 @@ public class ItemProducedByQuery extends ModeledQuery<AtlasProductionRecipe>
 	private final int itemID;
 
 	@Override
-	public String getSql()
+	public List<AtlasProductionRecipe> run(AtlasData data)
 	{
-		//language=SQL
-		return "SELECT *, PR.ID AS PR_ID, PM.ID AS PM_ID, PS.ID AS PS_ID " +
-			"FROM PRODUCTION_RECIPES PR " +
-			"LEFT JOIN PRODUCTION_MATERIALS PM ON PR.ID = PM.RECIPE_ID " +
-			"LEFT JOIN PRODUCTION_SKILLS PS ON PR.ID = PS.RECIPE_ID " +
-			// limit whole recipes: a row limit on the join cut the last recipe's materials off
-			"WHERE PR.ID IN (SELECT ID FROM PRODUCTION_RECIPES WHERE OUTPUT_ITEM_ID = ? ORDER BY ID LIMIT 100) " +
-			"ORDER BY PR.ID";
+		List<AtlasProductionRecipe> res = new ArrayList<>();
+		for (AtlasData.Row recipe : data.table("PRODUCTION_RECIPES"))
+		{
+			if (recipe.integer("OUTPUT_ITEM_ID") == itemID)
+			{
+				res.add(toRecipe(data, recipe));
+				if (res.size() == 100)
+				{
+					break;
+				}
+			}
+		}
+		return res;
 	}
 
-	@Override
-	public void setParams(PreparedStatement ps) throws SQLException
+	static AtlasProductionRecipe toRecipe(AtlasData data, AtlasData.Row recipe)
 	{
-		ps.setInt(1, itemID);
-	}
-
-	@Override
-	public AtlasProductionRecipe convertRow(ResultSet rs) throws SQLException
-	{
-		int id = rs.getInt("PR_ID");
+		int id = recipe.integer("ID");
 		AtlasProductionRecipe res = new AtlasProductionRecipe(
-			rs.getString("TICKS"),
+			recipe.str("TICKS"),
 			new ArrayList<>(),
-			rs.getString("FACILITIES"),
-			rs.getString("TOOLS"),
+			recipe.str("FACILITIES"),
+			recipe.str("TOOLS"),
 			new ArrayList<>(),
-			rs.getBoolean("IS_MEMBERS"),
-			rs.getString("OUTPUT_ITEM_NAME"),
-			rs.getString("OUTPUT_ITEM_VERSION"),
-			rs.getInt("OUTPUT_ITEM_ID"),
-			rs.getString("OUTPUT_QUANTITY"),
-			rs.getString("OUTPUT_QUANTITY_NOTE"),
-			rs.getString("OUTPUT_SUBTEXT")
+			recipe.bool("IS_MEMBERS"),
+			recipe.str("OUTPUT_ITEM_NAME"),
+			recipe.str("OUTPUT_ITEM_VERSION"),
+			recipe.integer("OUTPUT_ITEM_ID"),
+			recipe.str("OUTPUT_QUANTITY"),
+			recipe.str("OUTPUT_QUANTITY_NOTE"),
+			recipe.str("OUTPUT_SUBTEXT")
 		);
 
-		do
+		for (AtlasData.Row m : data.table("PRODUCTION_MATERIALS"))
 		{
-			if (rs.getInt("PM_ID") != 0)
+			if (m.integer("RECIPE_ID") != id)
 			{
-				AtlasProductionMaterial material = new AtlasProductionMaterial(
-					rs.getString("ITEM_NAME"),
-					rs.getString("ITEM_VERSION"),
-					rs.getInt("ITEM_ID"),
-					rs.getString("QUANTITY")
-				);
-
-				if (!res.getMaterials().contains(material)) {
-					res.getMaterials().add(material);
-				}
+				continue;
 			}
-
-			if (rs.getInt("PS_ID") != 0)
+			AtlasProductionMaterial material = new AtlasProductionMaterial(
+				m.str("ITEM_NAME"),
+				m.str("ITEM_VERSION"),
+				m.integer("ITEM_ID"),
+				m.str("QUANTITY")
+			);
+			if (!res.getMaterials().contains(material))
 			{
-				AtlasProductionSkill skill = new AtlasProductionSkill(
-					rs.getString("NAME"),
-					rs.getString("LEVEL"),
-					rs.getString("EXPERIENCE"),
-					rs.getBoolean("IS_BOOSTABLE")
-				);
-
-				if (!res.getSkills().contains(skill)) {
-					res.getSkills().add(skill);
-				}
+				res.getMaterials().add(material);
 			}
-		} while (rs.next() && rs.getInt("PR_ID") == id);
+		}
 
+		for (AtlasData.Row s : skills(data, id))
+		{
+			AtlasProductionSkill skill = new AtlasProductionSkill(
+				s.str("NAME"),
+				s.str("LEVEL"),
+				s.str("EXPERIENCE"),
+				s.bool("IS_BOOSTABLE")
+			);
+			if (!res.getSkills().contains(skill))
+			{
+				res.getSkills().add(skill);
+			}
+		}
+		return res;
+	}
+
+	static List<AtlasData.Row> skills(AtlasData data, int recipeId)
+	{
+		List<AtlasData.Row> res = new ArrayList<>();
+		for (AtlasData.Row s : data.table("PRODUCTION_SKILLS"))
+		{
+			if (s.integer("RECIPE_ID") == recipeId)
+			{
+				res.add(s);
+			}
+		}
 		return res;
 	}
 }

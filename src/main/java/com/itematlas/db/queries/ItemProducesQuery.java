@@ -1,17 +1,23 @@
 package com.itematlas.db.queries;
 
-import com.itematlas.types.AtlasProductionMaterial;
+import com.itematlas.db.AtlasData;
 import com.itematlas.types.AtlasProductionRecipe;
-import com.itematlas.types.AtlasProductionSkill;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class ItemProducesQuery extends ModeledQuery<AtlasProductionRecipe>
 {
+
+	private static final Pattern LEADING_INT = Pattern.compile("^\\s*([+-]?\\d+)");
 
 	private final int itemID;
 	private final String itemName;
@@ -19,89 +25,61 @@ public class ItemProducesQuery extends ModeledQuery<AtlasProductionRecipe>
 	private final int limit;
 
 	@Override
-	public String getSql()
+	public List<AtlasProductionRecipe> run(AtlasData data)
 	{
-		//language=SQL
-		return "SELECT PR.*, PS.*, PM.*, PR.ID AS PR_ID, PS.ID AS PS_ID, PM.ID AS PM_ID " +
-			"FROM PRODUCTION_RECIPES PR " +
-			"LEFT JOIN PRODUCTION_SKILLS PS ON PR.ID = PS.RECIPE_ID " +
-			"LEFT JOIN PRODUCTION_MATERIALS PM ON PR.ID = PM.RECIPE_ID " +
-			// page by whole recipes: a row limit on the join cut the last recipe's materials off
-			"WHERE PR.ID IN (SELECT ID FROM PRODUCTION_RECIPES " +
-			"WHERE ID IN (SELECT RECIPE_ID FROM PRODUCTION_MATERIALS WHERE ITEM_ID = ?) " +
-			// TOOLS is a comma separated list of wiki names
-			"OR (', ' || LOWER(TOOLS) || ', ') LIKE ? " +
-			"ORDER BY " + order("PRODUCTION_RECIPES") + " LIMIT ? OFFSET ?) " +
-			// convertRow reads one recipe's rows in a row, so ID breaks the last tie
-			"ORDER BY " + order("PR");
-	}
-
-	// lowest skill level first (a recipe's highest skill counts), then by output name
-	private static String order(String table)
-	{
-		return "(SELECT MAX(CAST(LEVEL AS INTEGER)) FROM PRODUCTION_SKILLS WHERE RECIPE_ID = " + table + ".ID), "
-			+ table + ".OUTPUT_ITEM_NAME, " + table + ".ID";
-	}
-
-	@Override
-	public void setParams(PreparedStatement ps) throws SQLException
-	{
-		ps.setInt(1, itemID);
-		ps.setString(2, "%, " + itemName.toLowerCase() + ", %");
-		ps.setInt(3, limit);
-		ps.setInt(4, offset);
-	}
-
-	@Override
-	public AtlasProductionRecipe convertRow(ResultSet rs) throws SQLException
-	{
-		int id = rs.getInt("PR_ID");
-		AtlasProductionRecipe res = new AtlasProductionRecipe(
-			rs.getString("TICKS"),
-			new ArrayList<>(),
-			rs.getString("FACILITIES"),
-			rs.getString("TOOLS"),
-			new ArrayList<>(),
-			rs.getBoolean("IS_MEMBERS"),
-			rs.getString("OUTPUT_ITEM_NAME"),
-			rs.getString("OUTPUT_ITEM_VERSION"),
-			rs.getInt("OUTPUT_ITEM_ID"),
-			rs.getString("OUTPUT_QUANTITY"),
-			rs.getString("OUTPUT_QUANTITY_NOTE"),
-			rs.getString("OUTPUT_SUBTEXT")
-		);
-
-		do
+		Set<Integer> usedIn = new HashSet<>();
+		for (AtlasData.Row m : data.table("PRODUCTION_MATERIALS"))
 		{
-			if (rs.getInt("PM_ID") != 0)
+			if (m.integer("ITEM_ID") == itemID)
 			{
-				AtlasProductionMaterial material = new AtlasProductionMaterial(
-					rs.getString("ITEM_NAME"),
-					rs.getString("ITEM_VERSION"),
-					rs.getInt("ITEM_ID"),
-					rs.getString("QUANTITY")
-				);
-
-				if (!res.getMaterials().contains(material)) {
-					res.getMaterials().add(material);
-				}
+				usedIn.add(m.integer("RECIPE_ID"));
 			}
+		}
 
-			if (rs.getInt("PS_ID") != 0)
+		// TOOLS is a comma separated list of wiki names
+		String tool = ", " + itemName.toLowerCase() + ", ";
+		Map<AtlasData.Row, Long> level = new HashMap<>();
+		List<AtlasData.Row> recipes = new ArrayList<>();
+		for (AtlasData.Row recipe : data.table("PRODUCTION_RECIPES"))
+		{
+			String tools = recipe.str("TOOLS");
+			if (usedIn.contains(recipe.integer("ID"))
+				|| tools != null && (", " + tools.toLowerCase() + ", ").contains(tool))
 			{
-				AtlasProductionSkill skill = new AtlasProductionSkill(
-					rs.getString("NAME"),
-					rs.getString("LEVEL"),
-					rs.getString("EXPERIENCE"),
-					rs.getBoolean("IS_BOOSTABLE")
-				);
-
-				if (!res.getSkills().contains(skill)) {
-					res.getSkills().add(skill);
-				}
+				recipes.add(recipe);
+				level.put(recipe, highestLevel(data, recipe.integer("ID")));
 			}
-		} while (rs.next() && rs.getInt("PR_ID") == id);
+		}
 
+		// lowest skill level first (a recipe's highest skill counts), then by output name
+		recipes.sort(Comparator.<AtlasData.Row, Long>comparing(level::get, Comparator.nullsFirst(Comparator.<Long>naturalOrder()))
+			.thenComparing(r -> r.str("OUTPUT_ITEM_NAME"), Comparator.nullsFirst(Comparator.<String>naturalOrder()))
+			.thenComparingInt(r -> r.integer("ID")));
+
+		List<AtlasProductionRecipe> res = new ArrayList<>();
+		int end = Math.min(offset + limit, recipes.size());
+		for (int i = offset; i < end; i++)
+		{
+			res.add(ItemProducedByQuery.toRecipe(data, recipes.get(i)));
+		}
 		return res;
+	}
+
+	// like SQL's MAX(CAST(LEVEL AS INTEGER)): leading digits count, others are 0, no skills is null
+	private static Long highestLevel(AtlasData data, int recipeId)
+	{
+		Long max = null;
+		for (AtlasData.Row skill : ItemProducedByQuery.skills(data, recipeId))
+		{
+			String text = skill.str("LEVEL");
+			if (text == null)
+			{
+				continue;
+			}
+			Matcher m = LEADING_INT.matcher(text);
+			long level = m.find() ? Long.parseLong(m.group(1)) : 0;
+			max = max == null ? level : Math.max(max, level);
+		}
+		return max;
 	}
 }

@@ -1,21 +1,15 @@
 package com.itematlas.db;
 
-import com.google.common.hash.Funnels;
-import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteStreams;
-import com.itematlas.ItemAtlasPlugin;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.util.Filepath;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
@@ -28,103 +22,87 @@ import okhttp3.Response;
 public class H2DbFetcher
 {
 
-	private static final String dbFileName = "data.sqlite";
+	private static final String dbFileName = "data.json.gz";
 	private static final String remoteUrl = "https://raw.githubusercontent.com/Ku-Tadao/runelite-wiki-scraper/wiki-data/output/" + dbFileName;
-	public static final File dbFile = new File(ItemAtlasPlugin.DATA_DIR, dbFileName);
 
 	private final OkHttpClient httpClient;
 
-	public void fetch(Runnable callback)
+	// calls back with the data file once it matches the remote checksum, or with the old file when offline
+	public void fetch(Filepath dir, Consumer<Filepath> callback)
 	{
-		downloadDbChecksum(callback);
-		// todo checksum
-
-	}
-
-	private void downloadDbChecksum(Runnable callback) {
-		Request req = new Request.Builder()
-			.get()
-			.url(remoteUrl + ".sha256")
-			.build();
-
-		httpClient.newCall(req).enqueue(new Callback()
+		Filepath dbFile = dir.join(dbFileName);
+		httpClient.newCall(get(remoteUrl + ".sha256")).enqueue(new Callback()
 		{
 			@Override
 			public void onFailure(Call call, IOException e)
 			{
-				log.error("Failed to download remote checksum for database file");
+				log.warn("Failed to download remote checksum for data file", e);
+				if (dbFile.exists())
+				{
+					callback.accept(dbFile);
+				}
 			}
 
 			@Override
 			public void onResponse(Call call, Response response) throws IOException
 			{
-				assert response.body() != null;
-				InputStream remoteBytes = response.body().byteStream();
-				ByteArrayOutputStream into = new ByteArrayOutputStream();
-				byte[] buf = new byte[4096];
-				for (int n; 0 < (n = remoteBytes.read(buf));) {
-					into.write(buf, 0, n);
-				}
-				into.close();
-				String checksum = into.toString(StandardCharsets.UTF_8).trim();
-
-				if (!dbFile.exists() || !checksumMatches(checksum))
+				String checksum;
+				try (response)
 				{
-					log.debug("Missing db or checksum mismatch. Downloading db");
-					downloadRemoteDb(callback);
-				} else {
-					callback.run();
+					checksum = response.body().string().trim();
+				}
+
+				if (dbFile.exists() && checksum.equals(sha256(dbFile)))
+				{
+					callback.accept(dbFile);
+				}
+				else
+				{
+					log.debug("Missing data file or checksum mismatch. Downloading it");
+					download(dbFile, callback);
 				}
 			}
 		});
 	}
 
-	private void downloadRemoteDb(Runnable callback)
+	private void download(Filepath dbFile, Consumer<Filepath> callback)
 	{
-		Request req = new Request.Builder()
-			.get()
-			.url(remoteUrl)
-			.build();
-		
-		httpClient.newCall(req).enqueue(new Callback()
+		httpClient.newCall(get(remoteUrl)).enqueue(new Callback()
 		{
 			@Override
 			public void onFailure(Call call, IOException e)
 			{
-				log.error("Failed to download remote database file");
+				log.error("Failed to download remote data file", e);
 			}
 
 			@Override
 			public void onResponse(Call call, Response response) throws IOException
 			{
-				assert response.body() != null;
-				InputStream remoteBytes = response.body().byteStream();
-
-				try (FileOutputStream fos = new FileOutputStream(dbFile))
+				try (response)
 				{
-					remoteBytes.transferTo(fos);
+					if (!response.isSuccessful())
+					{
+						log.error("Failed to download remote data file: HTTP {}", response.code());
+						return;
+					}
+					dbFile.write(response.body().bytes());
 				}
-				
-				callback.run();
+				callback.accept(dbFile);
 			}
 		});
 	}
 
-	private boolean checksumMatches(String remote) throws IOException
+	private static Request get(String url)
 	{
-		boolean matches;
-		if (dbFile.exists())
+		return new Request.Builder().get().url(url).build();
+	}
+
+	private static String sha256(Filepath file) throws IOException
+	{
+		try (InputStream is = file.openInputStream())
 		{
-			FileInputStream is = new FileInputStream(dbFile);
-			Hasher hasher = Hashing.sha256().newHasher();
-			ByteStreams.copy(is, Funnels.asOutputStream(hasher));
-			String hash = hasher.hash().toString();
-			matches = hash.equals(remote);
-		} else {
-			matches = false;
+			return Hashing.sha256().hashBytes(ByteStreams.toByteArray(is)).toString();
 		}
-
-		return matches;
 	}
 
 }

@@ -1,36 +1,30 @@
 package com.itematlas.db.queries;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import com.itematlas.db.AtlasData;
+import com.itematlas.types.AtlasInfoItem;
+import java.util.Collections;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
 
-/**
- * Finds an item by its wiki name, preferring the default version.
- */
-public class ItemByNameQuery extends ItemByIDQuery
+@RequiredArgsConstructor
+public class ItemByNameQuery extends ModeledQuery<AtlasInfoItem>
 {
 
 	private final String name;
 
-	public ItemByNameQuery(String name)
-	{
-		super(0);
-		this.name = name;
-	}
-
 	@Override
-	public String getSql()
+	public List<AtlasInfoItem> run(AtlasData data)
 	{
-		//language=SQL
-		return "SELECT I.*, IG.NAME AS GROUP_NAME FROM ITEMS I " +
-			"LEFT JOIN ITEM_GROUPS IG on IG.ID = I.GROUP_ID " +
-			"WHERE LOWER(I.NAME) = LOWER(?) " +
-			"ORDER BY I.IS_DEFAULT_VERSION DESC, I.ID " +
-			"LIMIT 1";
-	}
-
-	@Override
-	public void setParams(PreparedStatement ps) throws SQLException
-	{
-		ps.setString(1, name);
+		// the default version first, then the lowest ID
+		AtlasData.Row best = null;
+		for (AtlasData.Row item : data.table("ITEMS"))
+		{
+			if (item.str("NAME").equalsIgnoreCase(name)
+				&& (best == null || item.bool("IS_DEFAULT_VERSION") && !best.bool("IS_DEFAULT_VERSION")))
+			{
+				best = item;
+			}
+		}
+		return best == null ? Collections.emptyList() : List.of(ItemByIDQuery.toItem(data, best));
 	}
 }

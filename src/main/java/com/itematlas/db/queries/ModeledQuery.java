@@ -1,18 +1,11 @@
 package com.itematlas.db.queries;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import lombok.extern.slf4j.Slf4j;
+import com.itematlas.db.AtlasData;
+import java.util.List;
 
-@Slf4j
 public abstract class ModeledQuery<T>
 {
-	
-	public abstract String getSql();
-	
-	public abstract void setParams(PreparedStatement ps) throws SQLException;
 
-	public abstract T convertRow(ResultSet rs) throws SQLException;
+	public abstract List<T> run(AtlasData data);
 
 }

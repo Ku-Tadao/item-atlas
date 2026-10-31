@@ -60,4 +60,4 @@ Quest Helper's item lookups open in Item Atlas.
 
 ## Credits
 
-Item Atlas grew out of [Not Enough Runes](https://github.com/Hannah-GBS/notenoughrunes) by Hannah_GBS and LlemonDuck, and keeps its BSD 2-Clause license ([LICENSE](LICENSE)). Its item data comes from [runelite-wiki-scraper](https://github.com/Ku-Tadao/runelite-wiki-scraper), which rebuilds `data.sqlite` from the OSRS Wiki every Friday.
+Item Atlas grew out of [Not Enough Runes](https://github.com/Hannah-GBS/notenoughrunes) by Hannah_GBS and LlemonDuck, and keeps its BSD 2-Clause license ([LICENSE](LICENSE)). Its item data comes from [runelite-wiki-scraper](https://github.com/Ku-Tadao/runelite-wiki-scraper), which rebuilds it from the OSRS Wiki every Friday.

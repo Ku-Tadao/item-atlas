@@ -1,9 +1,9 @@
 package com.itematlas.db.queries;
 
+import com.itematlas.db.AtlasData;
 import com.itematlas.types.AtlasInfoItem;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -13,41 +13,21 @@ public class ItemGroupQuery extends ModeledQuery<AtlasInfoItem>
 	private final String searchTerms;
 
 	@Override
-	public String getSql()
+	public List<AtlasInfoItem> run(AtlasData data)
 	{
-		//language=SQL
-		return "SELECT I.*, IG.NAME AS GROUP_NAME FROM ITEMS I " +
-			"LEFT JOIN ITEM_GROUPS IG on IG.ID = I.GROUP_ID " +
-			"WHERE IG.SEARCH_NAME LIKE ? " +
-			"LIMIT 200";
-	}
-
-	@Override
-	public void setParams(PreparedStatement ps) throws SQLException
-	{
-		ps.setString(1, searchTerms.toLowerCase());
-	}
-
-	@Override
-	public AtlasInfoItem convertRow(ResultSet rs) throws SQLException
-	{
-		try
+		List<AtlasInfoItem> res = new ArrayList<>();
+		for (AtlasData.Row item : data.table("ITEMS"))
 		{
-			return new AtlasInfoItem(
-				rs.getInt("ID"),
-				rs.getString("NAME"),
-				rs.getString("EXAMINE_TEXT"),
-				rs.getString("GROUP_NAME"),
-				rs.getString("VERSION"),
-				rs.getString("URL"),
-				rs.getBoolean("IS_MEMBERS"),
-				rs.getBoolean("IS_TRADEABLE"),
-				rs.getBoolean("IS_DEFAULT_VERSION")
-			);
+			AtlasData.Row group = data.byId("ITEM_GROUPS", item.integer("GROUP_ID"));
+			if (group != null && group.str("SEARCH_NAME").equalsIgnoreCase(searchTerms))
+			{
+				res.add(ItemByIDQuery.toItem(data, item));
+				if (res.size() == 200)
+				{
+					break;
+				}
+			}
 		}
-		finally
-		{
-			rs.next();
-		}
+		return res;
 	}
 }

@@ -8,7 +8,6 @@ import com.itematlas.db.H2DataProvider;
 import com.itematlas.ui.AtlasDropsPanel;
 import com.itematlas.ui.AtlasPanel;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +33,6 @@ import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.JavaScriptCallback;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetUtil;
-import net.runelite.client.RuneLite;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -44,19 +42,19 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
+import net.runelite.client.util.Filepath;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.Text;
 
 @Slf4j
 @PluginDescriptor(
 	name = "Item Atlas",
+	internalName = "item-atlas",
 	description = "Shows wiki-sourced information where items can be found and what they're used for",
 	tags = {"item", "sources", "uses", "recipe", "crafting", "shops", "drops", "spawns", "wiki", "gps", "route"}
 )
 public class ItemAtlasPlugin extends Plugin
 {
-
-	public static final File DATA_DIR = new File(RuneLite.RUNELITE_DIR, "item-atlas");
 
 	@Inject
 	private Client client;
@@ -102,16 +100,9 @@ public class ItemAtlasPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
-		if (!DATA_DIR.exists())
-		{
-			DATA_DIR.mkdirs();
-			dataProvider.init(); // async
-		}
-		else
-		{
-			dataProvider.init(); // async
-		}
-
+		Filepath dir = getPluginDirectory();
+		dir.createDirectories();
+		dataProvider.init(dir); // async
 
 		atlasPanel = injector.getInstance(AtlasPanel.class);
 		final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");

@@ -1,9 +1,11 @@
 package com.itematlas.db.queries;
 
+import com.itematlas.db.AtlasData;
 import com.itematlas.types.AtlasSourceLocation;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -13,39 +15,48 @@ public class DropSourceLocationsQuery extends ModeledQuery<AtlasSourceLocation>
 	private final int itemId;
 
 	@Override
-	public String getSql()
+	public List<AtlasSourceLocation> run(AtlasData data)
 	{
-		//language=SQL	
-		// the wiki can link the singular of a plural item: "house key" is the item "House keys"
-		return "SELECT SL.*, (SELECT MIN(ID) FROM ITEMS WHERE NAME IN (SL.REQUIRED_ITEM, SL.REQUIRED_ITEM || 's')) AS REQUIRED_ITEM_ID " +
-			"FROM SOURCE_LOCATIONS SL " +
-			"WHERE SOURCE IN (SELECT SOURCE FROM DROP_SOURCES WHERE ITEM_ID = ?)";
+		Set<String> sources = new HashSet<>();
+		for (AtlasData.Row drop : data.table("DROP_SOURCES"))
+		{
+			if (drop.integer("ITEM_ID") == itemId)
+			{
+				sources.add(drop.str("SOURCE"));
+			}
+		}
+
+		List<AtlasSourceLocation> res = new ArrayList<>();
+		for (AtlasData.Row location : data.table("SOURCE_LOCATIONS"))
+		{
+			if (sources.contains(location.str("SOURCE")))
+			{
+				String requiredItem = location.str("REQUIRED_ITEM");
+				res.add(new AtlasSourceLocation(
+					location.str("SOURCE"),
+					location.str("LOCATION"),
+					location.bool("IS_MEMBERS"),
+					location.str("TILES"),
+					requiredItem,
+					requiredItem == null ? 0 : requiredItemId(data, requiredItem),
+					location.str("REQUIREMENTS")
+				));
+			}
+		}
+		return res;
 	}
 
-	@Override
-	public void setParams(PreparedStatement ps) throws SQLException
+	// the wiki can link the singular of a plural item: "house key" is the item "House keys"
+	private static int requiredItemId(AtlasData data, String name)
 	{
-		ps.setInt(1, itemId);
-	}
-
-	@Override
-	public AtlasSourceLocation convertRow(ResultSet rs) throws SQLException
-	{
-		try
+		for (AtlasData.Row item : data.table("ITEMS"))
 		{
-			return new AtlasSourceLocation(
-				rs.getString("SOURCE"),
-				rs.getString("LOCATION"),
-				rs.getBoolean("IS_MEMBERS"),
-				rs.getString("TILES"),
-				rs.getString("REQUIRED_ITEM"),
-				rs.getInt("REQUIRED_ITEM_ID"),
-				rs.getString("REQUIREMENTS")
-			);
+			String itemName = item.str("NAME");
+			if (itemName.equals(name) || itemName.equals(name + "s"))
+			{
+				return item.integer("ID");
+			}
 		}
-		finally
-		{
-			rs.next();
-		}
+		return 0;
 	}
 }
