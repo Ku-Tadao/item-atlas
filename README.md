@@ -7,9 +7,9 @@ A RuneLite plugin that shows where to get every item in Old School RuneScape and
 </p>
 
 <p align="center">
-  <img src="docs/images/search.png" alt="Searching for bronze items" width="220">
-  <img src="docs/images/sources.png" alt="Sources of a bronze bar, with drops expanded" width="220">
-  <img src="docs/images/uses.png" alt="Uses of a bronze bar, with a recipe card expanded" width="220">
+  <img src="docs/images/search.png" alt="Searching for bronze items" width="180">
+  <img src="docs/images/sources.png" alt="Sources of a bronze bar, with drops expanded" width="180">
+  <img src="docs/images/uses.png" alt="Uses of a bronze bar, with a recipe card expanded" width="180">
 </p>
 
 ## What it shows
