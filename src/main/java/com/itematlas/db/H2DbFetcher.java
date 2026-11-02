@@ -1,7 +1,6 @@
 package com.itematlas.db;
 
 import com.google.common.hash.Hashing;
-import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.Consumer;
@@ -101,7 +100,7 @@ public class H2DbFetcher
 	{
 		try (InputStream is = file.openInputStream())
 		{
-			return Hashing.sha256().hashBytes(ByteStreams.toByteArray(is)).toString();
+			return Hashing.sha256().hashBytes(is.readAllBytes()).toString();
 		}
 	}
 
