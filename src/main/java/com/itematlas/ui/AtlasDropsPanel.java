@@ -14,7 +14,6 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
@@ -55,6 +54,7 @@ import net.runelite.client.events.PluginMessage;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginManager;
 import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.util.ImageUtil;
 
@@ -140,7 +140,13 @@ public class AtlasDropsPanel extends JPanel
 				gbc.gridwidth = 1;
 				gbc.weightx = 0.0;
 				gbc.fill = GridBagConstraints.NONE;
-				dropPanel.add(new JLabel(drops.stream().map(AtlasDropsPanel::buildQuantityString).distinct().collect(Collectors.joining(" / "))), gbc);
+				JLabel quantity = new JLabel(quantityText(drops));
+				String allQuantities = drops.stream().map(AtlasDropsPanel::buildQuantityString).distinct().collect(Collectors.joining(" / "));
+				if (!allQuantities.equals(quantity.getText()))
+				{
+					quantity.setToolTipText(allQuantities);
+				}
+				dropPanel.add(quantity, gbc);
 
 				String level = levelText(dropSource.getDropLevel());
 				JLabel dropType = new JLabel((level + " " + dropSource.getDropType()).trim(), SwingConstants.CENTER);
@@ -155,6 +161,8 @@ public class AtlasDropsPanel extends JPanel
 					dropType.setToolTipText("Levels " + dropSource.getDropLevel().replace(",", ", "));
 				}
 				dropType.setPreferredSize(new Dimension(20, 20));
+				// in a tight row the level gives way, so the rate stays in view
+				dropType.setMinimumSize(new Dimension(20, 20));
 				gbc.gridx = 1;
 				gbc.weightx = 1.0;
 				gbc.anchor = GridBagConstraints.CENTER;
@@ -372,11 +380,11 @@ public class AtlasDropsPanel extends JPanel
 			rowByName.putIfAbsent(name, location);
 		}
 
-		JPanel list = new JPanel(new GridLayout(0, 1));
+		JPanel list = new JPanel(new DynamicGridLayout(0, 1));
 		list.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		tilesByName.forEach((name, tiles) ->
 		{
-			JLabel row = new JLabel(name);
+			JLabel row = new JLabel(AtlasSourceRouteUtil.wrap(name, 130));
 			row.setFont(FontManager.getRunescapeSmallFont());
 			row.setBorder(new EmptyBorder(1, 8, 1, 0));
 			if (showMembers && membersByName.get(name))
@@ -490,6 +498,18 @@ public class AtlasDropsPanel extends JPanel
 		{
 			return levels;
 		}
+	}
+
+	// a source can drop dozens of amounts, which only fit the row as a range
+	static String quantityText(List<AtlasDropSource> drops)
+	{
+		List<String> quantities = drops.stream().map(AtlasDropsPanel::buildQuantityString).distinct().collect(Collectors.toList());
+		if (quantities.size() <= 2)
+		{
+			return String.join(" / ", quantities);
+		}
+		return "x" + drops.stream().mapToInt(AtlasDropSource::getQuantityLow).min().getAsInt()
+			+ "-" + drops.stream().mapToInt(AtlasDropSource::getQuantityHigh).max().getAsInt();
 	}
 
 	private static String buildQuantityString(AtlasDropSource dropSource)

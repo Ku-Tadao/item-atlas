@@ -3,26 +3,14 @@ package com.itematlas.ui;
 import com.itematlas.types.AtlasSpawnItem;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.event.ActionEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
-import javax.swing.JMenuItem;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import net.runelite.api.Client;
-import net.runelite.api.GameState;
-import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.plugins.PluginManager;
@@ -49,7 +37,7 @@ public class AtlasSpawnPanel extends JPanel
 			membersLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 5));
 		}
 		add(membersLabel, BorderLayout.WEST);
-		JLabel location = new JLabel(AtlasSourceRouteUtil.wrap(spawn.getLocation(), 150));
+		JLabel location = new JLabel(AtlasSourceRouteUtil.wrap(spawn.getLocation(), 130));
 		add(location, BorderLayout.CENTER);
 
 		if (AtlasSourceRouteUtil.tilesOrCoords(spawn.getTiles(), spawn.getCoords(), spawn.getPlane()).isEmpty())
@@ -57,81 +45,8 @@ public class AtlasSpawnPanel extends JPanel
 			add(AtlasSourceRouteUtil.noLocationLabel(), BorderLayout.SOUTH);
 		}
 
-		clientThread.invokeLater(() ->
-		{
-			WorldPoint playerWP;
-
-			if (client.getGameState() == GameState.LOGGED_IN) {
-				playerWP = client.getLocalPlayer().getWorldLocation();
-			}
-			else {
-				playerWP = null;
-			}
-
-			Set<WorldPoint> spawnTiles = new HashSet<>(AtlasSourceRouteUtil.tilesOrCoords(spawn.getTiles(), spawn.getCoords(), spawn.getPlane()));
-
-			AtlasSourceRouteUtil.Router router = AtlasSourceRouteUtil.findActiveRouter(pluginManager);
-
-			JPopupMenu menu = new JPopupMenu("Menu");
-			if (!spawnTiles.isEmpty() && playerWP != null && router != null) {
-
-				JMenuItem shortestPathMenu = new JMenuItem(new AbstractAction(router.pluginName)
-				{
-					@Override
-					public void actionPerformed(ActionEvent e)
-					{
-						Map<String, Object> data = new HashMap<>();
-						data.put("start", playerWP);
-						// the route plugin picks the nearest tile
-						data.put("target", spawnTiles);
-						router.route(clientThread, eventBus, data);
-					}
-				});
-
-				menu.add(shortestPathMenu);
-			}
-
-			var menuHasEntries = menu.getSubElements().length > 0;
-
-			if (menuHasEntries)
-			{
-				location.addMouseListener(new MouseAdapter()
-				{
-					@Override
-					public void mouseClicked(MouseEvent e)
-					{
-						if (SwingUtilities.isRightMouseButton(e) && e.getClickCount() == 1)
-						{
-							menu.show(location, e.getX(), e.getY());
-						}
-					}
-				});
-
-				membersLabel.addMouseListener(new MouseAdapter()
-				{
-					@Override
-					public void mouseClicked(MouseEvent e)
-					{
-						if (SwingUtilities.isRightMouseButton(e) && e.getClickCount() == 1)
-						{
-							menu.show(membersLabel, e.getX(), e.getY());
-						}
-					}
-				});
-
-				addMouseListener(new MouseAdapter()
-				{
-					@Override
-					public void mouseClicked(MouseEvent e)
-					{
-						if (SwingUtilities.isRightMouseButton(e) && e.getClickCount() == 1)
-						{
-							menu.show(getParent(), e.getX(), e.getY());
-						}
-					}
-				});
-			}
-		});
+		clientThread.invokeLater(() -> AtlasSourceRouteUtil.addRouteMenu(client, clientThread, eventBus, pluginManager,
+			new HashSet<>(AtlasSourceRouteUtil.tilesOrCoords(spawn.getTiles(), spawn.getCoords(), spawn.getPlane())), this, location, membersLabel));
 	}
 	
 }

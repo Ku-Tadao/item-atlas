@@ -61,7 +61,6 @@ class AtlasSection extends JPanel
 		setVisible(false);
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setMinimumSize(new Dimension(210, 0));
-		setMaximumSize(new Dimension(220, 0));
 
 		final JPanel sectionHeader = new JPanel();
 		sectionHeader.setLayout(new BorderLayout());

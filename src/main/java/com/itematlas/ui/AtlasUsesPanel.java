@@ -10,12 +10,11 @@ import com.itematlas.types.AtlasProductionRecipe;
 import com.itematlas.types.AtlasShop;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -70,27 +69,13 @@ class AtlasUsesPanel extends JPanel
 		AtlasSection recipesSection = section(UseSectionType.RECIPES);
 		AtlasSection shopsSection = section(UseSectionType.SHOPS);
 
-		GridBagConstraints containerGbc = new GridBagConstraints(
-			0,
-			0,
-			1,
-			1,
-			1.0,
-			1.0,
-			GridBagConstraints.LINE_START,
-			GridBagConstraints.BOTH,
-			new Insets(0, 0, 0, 0),
-			0,
-			0
-		);
-		JPanel container = new JPanel(new GridBagLayout());
-		container.add(recipesSection, containerGbc);
-		containerGbc.gridy++;
-		container.add(shopsSection, containerGbc);
+		// stacks at the given width; a GridBagLayout squashes every row once one of them asks for more
+		JPanel container = new JPanel();
+		container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
+		container.add(recipesSection);
+		container.add(shopsSection);
 
-		JPanel wrapper = new JPanel(new BorderLayout());
-
-		wrapper.setMaximumSize(new Dimension(220, Integer.MAX_VALUE));
+		JPanel wrapper = AtlasSourceRouteUtil.scrollView();
 		wrapper.add(container, BorderLayout.NORTH);
 		// sits under the sections that have come in so far
 		JPanel loading = AtlasSourceRouteUtil.noDataPanel("Loading uses…");

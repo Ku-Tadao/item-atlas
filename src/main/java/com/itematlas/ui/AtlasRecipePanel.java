@@ -174,8 +174,8 @@ public class AtlasRecipePanel extends JPanel
 
 		if (recipe.getFacilities() != null || recipe.getTools() != null)
 		{
-			// "Requires: Hammer · Anvil", each with its icon where there is one
-			JPanel needs = AtlasSourceRouteUtil.flowPanel(165);
+			// "Requires: Hammer, Anvil", each with its icon where there is one
+			JPanel needs = AtlasSourceRouteUtil.flowPanel(200);
 			needs.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 			needs.add(needsLabel("Requires:"));
 			add(needs, new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, LINE_START, BOTH, new Insets(2, 0, 2, 0), 0, 0));
@@ -213,7 +213,7 @@ public class AtlasRecipePanel extends JPanel
 			}
 		}
 
-		add(new JLabel("Materials"), new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, CENTER, NONE, NO_INSETS, 4, 4));
+		add(needsLabel("Materials:"), new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, LINE_START, NONE, new Insets(3, 3, 1, 0), 0, 0));
 
 		for (AtlasProductionMaterial material : recipe.getMaterials())
 		{
@@ -222,23 +222,23 @@ public class AtlasRecipePanel extends JPanel
 			JLabel materialLabel = new JLabel();
 			setItemDetails(materialLabel, material.getItemID(), material.getName());
 
-			materialRow.add(materialLabel, new GridBagConstraints(0, 0, 3, 1, 1.0, 0.0, LINE_START, BOTH, NO_INSETS, 4, 4));
+			materialRow.add(materialLabel, new GridBagConstraints(0, 0, 3, 1, 1.0, 0.0, LINE_START, BOTH, NO_INSETS, 4, 0));
 
-			materialRow.add(new JLabel("x" + material.getQuantity()), new GridBagConstraints(3, 0, 1, 1, 0.0, 0.0, EAST, NONE, new Insets(0, 8, 0, 0), 4, 4));
+			materialRow.add(new JLabel("x" + material.getQuantity()), new GridBagConstraints(3, 0, 1, 1, 0.0, 0.0, EAST, NONE, new Insets(0, 8, 0, 0), 4, 0));
 
 			addMouseAdapter(materialLabel, material.getItemID(), atlasInfoItem.getItemID());
 
-			add(materialRow, new GridBagConstraints(0, row++, 4, 1, 0.0, 0.0, CENTER, BOTH, NO_INSETS, 4, 4));
+			add(materialRow, new GridBagConstraints(0, row++, 4, 1, 0.0, 0.0, CENTER, BOTH, new Insets(1, 0, 1, 0), 4, 0));
 		}
 
 		if (!ownOutput)
 		{
-			add(new JLabel("Output"), new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, CENTER, NONE, NO_INSETS, 4, 4));
+			add(needsLabel("Output:"), new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, LINE_START, NONE, new Insets(3, 3, 1, 0), 0, 0));
 			JLabel outputLabel = new JLabel();
 			setItemDetails(outputLabel, recipe.getOutputItemID(), recipe.getOutputItemName());
-			add(outputLabel, new GridBagConstraints(0, row, 3, 1, 1.0, 0.0, LINE_START, BOTH, NO_INSETS, 4, 4));
+			add(outputLabel, new GridBagConstraints(0, row, 3, 1, 1.0, 0.0, LINE_START, BOTH, new Insets(1, 0, 1, 0), 4, 0));
 			addMouseAdapter(outputLabel, recipe.getOutputItemID(), atlasInfoItem.getItemID());
-			add(quantityLabel, new GridBagConstraints(3, row, 1, 1, 0.0, 0.0, LINE_END, NONE, new Insets(0, 4, 0, 0), 4, 4));
+			add(quantityLabel, new GridBagConstraints(3, row, 1, 1, 0.0, 0.0, LINE_END, NONE, new Insets(0, 4, 0, 0), 4, 0));
 		}
 	}
 
@@ -310,7 +310,9 @@ public class AtlasRecipePanel extends JPanel
 	{
 		if (needs.getComponentCount() > 1)
 		{
-			needs.add(needsLabel("·"));
+			// the comma rides on the previous need, so a wrapped line never starts or ends with a lone separator
+			JLabel previous = (JLabel) needs.getComponent(needs.getComponentCount() - 1);
+			previous.setText(previous.getText() + ",");
 		}
 		JLabel label = needsLabel(need);
 		needs.add(label);
@@ -321,16 +323,15 @@ public class AtlasRecipePanel extends JPanel
 	{
 		clientThread.invokeLater(() ->
 		{
-			AsyncBufferedImage itemImage = this.itemManager.getImage(itemManager.canonicalize(itemId));
+			AtlasSourceRouteUtil.smallItemIcon(label, this.itemManager.getImage(itemManager.canonicalize(itemId)));
 			ItemComposition itemComposition = this.itemManager.getItemComposition(itemManager.canonicalize(itemId));
 				SwingUtilities.invokeLater(() -> {
-					label.setIcon(new ImageIcon(itemImage));
 					if (itemId != BANK_FILLER_ID)
 					{
-						label.setText(AtlasSourceRouteUtil.wrap(itemComposition.getName(), 100));
+						label.setText(AtlasSourceRouteUtil.wrap(itemComposition.getName(), 130));
 						label.setToolTipText(itemComposition.getName());
 					} else {
-						label.setText(AtlasSourceRouteUtil.wrap(itemName, 100));
+						label.setText(AtlasSourceRouteUtil.wrap(itemName, 130));
 						label.setToolTipText(itemName);
 					}
 

@@ -20,9 +20,7 @@ import com.itematlas.types.AtlasSourceLocation;
 import com.itematlas.types.AtlasSpawnItem;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -85,18 +84,15 @@ class AtlasSourcesPanel extends JPanel
 		AtlasSection shopsSection = section(SourceSectionType.SHOPS);
 		AtlasSection spawnsSection = section(SourceSectionType.SPAWNS);
 
-		// row 0 is kept for the route button, added once every source is in
-		GridBagConstraints containerGbc = new GridBagConstraints(0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
-		JPanel container = new JPanel(new GridBagLayout());
+		// stacks at the given width; a GridBagLayout squashes every row once one of them asks for more
+		JPanel container = new JPanel();
+		container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
 		for (AtlasSection section : List.of(recipesSection, dropsSection, shopsSection, spawnsSection))
 		{
-			container.add(section, containerGbc);
-			containerGbc.gridy++;
+			container.add(section);
 		}
 
-		JPanel wrapper = new JPanel(new BorderLayout());
-
-		wrapper.setMaximumSize(new Dimension(220, Integer.MAX_VALUE));
+		JPanel wrapper = AtlasSourceRouteUtil.scrollView();
 		wrapper.add(container, BorderLayout.NORTH);
 		// sits under the sections that have come in so far
 		JPanel loading = AtlasSourceRouteUtil.noDataPanel("Loading sources…");
@@ -170,7 +166,10 @@ class AtlasSourcesPanel extends JPanel
 			// a source can drop the item at several rates, e.g. per quantity; its best one counts
 			Map<String, Double> dropRarity = dropSources.stream()
 				.collect(Collectors.toMap(AtlasDropSource::getSource, RarityParser::calculateRarity, Math::max));
-			container.add(createRouteButton(shops, spawns, dropLocations, dropRarity), new GridBagConstraints(0, 0, 1, 1, 1.0, 0.0, GridBagConstraints.LINE_START, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 8, 0), 0, 0));
+			JPanel routeRow = new JPanel(new BorderLayout());
+			routeRow.setBorder(new EmptyBorder(0, 0, 8, 0));
+			routeRow.add(createRouteButton(shops, spawns, dropLocations, dropRarity));
+			container.add(routeRow, 0);
 		}
 		revalidate();
 		repaint();

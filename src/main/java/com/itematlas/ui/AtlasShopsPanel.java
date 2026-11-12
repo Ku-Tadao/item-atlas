@@ -4,7 +4,7 @@ import com.itematlas.types.AtlasShop;
 import com.itematlas.types.AtlasShopItem;
 import static com.itematlas.ui.AtlasPanel.MAX_ENTRIES;
 import java.awt.BorderLayout;
-import java.awt.Dimension;
+import java.awt.Cursor;
 import java.awt.GridBagConstraints;
 import static java.awt.GridBagConstraints.BOTH;
 import static java.awt.GridBagConstraints.LINE_END;
@@ -12,31 +12,27 @@ import static java.awt.GridBagConstraints.LINE_START;
 import static java.awt.GridBagConstraints.NONE;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.swing.AbstractAction;
 import javax.swing.BoxLayout;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
-import javax.swing.JMenuItem;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
-import net.runelite.api.GameState;
-import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.PluginManager;
 import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.DynamicGridLayout;
+import net.runelite.client.ui.FontManager;
 
 @Slf4j
 public class AtlasShopsPanel extends JPanel
@@ -44,17 +40,43 @@ public class AtlasShopsPanel extends JPanel
 
 	private static final Insets NO_INSETS = new Insets(0, 0, 0, 0);
 
+	private final ItemManager itemManager;
+	private final ClientThread clientThread;
+	private final Client client;
+	private final EventBus eventBus;
+	private final PluginManager pluginManager;
+	private final AtlasPanel mainPanel;
+
+	/**
+	 * @param isCurrency true on the Uses tab, where the shops list what the item buys instead of where it's sold
+	 */
 	public AtlasShopsPanel(List<AtlasShop> shops, AtlasItem atlasItem, ItemManager itemManager, ClientThread clientThread, boolean isCurrency, AtlasPanel mainPanel, Client client, EventBus eventBus, PluginManager pluginManager, boolean showMembers)
 	{
+		this.itemManager = itemManager;
+		this.clientThread = clientThread;
+		this.client = client;
+		this.eventBus = eventBus;
+		this.pluginManager = pluginManager;
+		this.mainPanel = mainPanel;
 
-		String useName = atlasItem.getInfoItem().getName().length() > atlasItem.getInfoItem().getGroup().length()
-			? atlasItem.getInfoItem().getName()
-			: atlasItem.getInfoItem().getGroup();
-
-		setMaximumSize(new Dimension(220, 80));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-//		setBorder(BorderFactory.createLineBorder(ColorScheme.LIGHT_GRAY_COLOR, 1));
+
+		if (isCurrency)
+		{
+			int entries = 0;
+			for (AtlasShop shop : shops)
+			{
+				if (entries >= MAX_ENTRIES)
+				{
+					break;
+				}
+				List<AtlasShopItem> items = shop.getItems().subList(0, Math.min(shop.getItems().size(), MAX_ENTRIES - entries));
+				entries += items.size();
+				add(currencyCard(shop, items, showMembers));
+			}
+			return;
+		}
 
 		int row = 0;
 		int entries = 0;
@@ -62,10 +84,7 @@ public class AtlasShopsPanel extends JPanel
 		shopLoop:
 		for (AtlasShop shop : shops)
 		{
-			List<AtlasShopItem> shopItems;
-			shopItems = shop.getItems();
-
-			for (AtlasShopItem shopItem : shopItems)
+			for (AtlasShopItem shopItem : shop.getItems())
 			{
 				if (entries >= MAX_ENTRIES)
 				{
@@ -90,124 +109,28 @@ public class AtlasShopsPanel extends JPanel
 				int finalRow = row;
 				clientThread.invokeLater(() ->
 				{
-					String sellPrice;
-					if (shop.getSellMultiplier() != null)
-					{
-						if (isCurrency) {
-							sellPrice = String.valueOf(itemManager.getItemComposition(
-								itemManager.canonicalize(
-									shopItem.getItemID()))
-								.getPrice() * (Integer.parseInt(shop.getSellMultiplier()) / 1000));
-						}
-						else
-						{
-							sellPrice = String.valueOf(itemManager.getItemComposition(
-								itemManager.canonicalize(
-									atlasItem.getInfoItem().getItemID()))
-								.getPrice() * (Integer.parseInt(shop.getSellMultiplier())) / 1000);
-						}
-					}
-					else
-					{
-						sellPrice = shopItem.getSellPrice();
-					}
-
-					if (shopItem.getCurrency().equals("Coins"))
-					{
-						sellPrice += "gp";
-					}
-					else
-					{
-						sellPrice += " " + shopItem.getCurrency();
-					}
-					String finalSellPrice = sellPrice;
+					String sellPrice = shop.getSellMultiplier() != null
+						? String.valueOf(itemManager.getItemComposition(
+							itemManager.canonicalize(
+								atlasItem.getInfoItem().getItemID()))
+							.getPrice() * (Integer.parseInt(shop.getSellMultiplier())) / 1000)
+						: shopItem.getSellPrice();
+					String finalSellPrice = sellPrice + (shopItem.getCurrency().equals("Coins") ? "gp" : " " + shopItem.getCurrency());
 					SwingUtilities.invokeLater(() ->
 						shopPanel.add(new JLabel(finalSellPrice), new GridBagConstraints(1, finalRow, 1, 1, 0.1, 0.0, LINE_END, NONE, NO_INSETS, 4, 4)));
 
-					WorldPoint playerWP;
-
-					if (client.getGameState() == GameState.LOGGED_IN) {
-						playerWP = client.getLocalPlayer().getWorldLocation();
-					}
-					else {
-						playerWP = null;
-					}
-
-					// the route plugin picks the nearest of the shop's map points
-					Set<WorldPoint> shopTiles = new HashSet<>(AtlasSourceRouteUtil.tilesOrCoords(shop.getTiles(), shop.getCoords(), shop.getPlane()));
-					AtlasSourceRouteUtil.Router router = AtlasSourceRouteUtil.findActiveRouter(pluginManager);
-
-					JPopupMenu menu = new JPopupMenu("Menu");
-
-					if (!shopTiles.isEmpty() && playerWP != null && router != null) {
-
-						JMenuItem shortestPathMenu = new JMenuItem(new AbstractAction(router.pluginName)
-						{
-							@Override
-							public void actionPerformed(ActionEvent e)
-							{
-								Map<String, Object> data = new HashMap<>();
-								data.put("start", playerWP);
-								data.put("target", shopTiles);
-								router.route(clientThread, eventBus, data);
-							}
-						});
-
-						menu.add(shortestPathMenu);
-					}
-
-					var menuHasEntries = menu.getSubElements().length > 0;
-
-					if (menuHasEntries)
-					{
-						shopPanel.addMouseListener(new MouseAdapter()
-						{
-							@Override
-							public void mouseClicked(MouseEvent e)
-							{
-								if (SwingUtilities.isRightMouseButton(e) && e.getClickCount() == 1)
-								{
-									menu.show(shopPanel, e.getX(), e.getY());
-								}
-							}
-						});
-
-						shopName.addMouseListener(new MouseAdapter()
-						{
-							@Override
-							public void mouseClicked(MouseEvent e)
-							{
-								if (SwingUtilities.isRightMouseButton(e) && e.getClickCount() == 1)
-								{
-									menu.show(shopName, e.getX(), e.getY());
-								}
-							}
-						});
-
-						location.addMouseListener(new MouseAdapter()
-						{
-							@Override
-							public void mouseClicked(MouseEvent e)
-							{
-								if (SwingUtilities.isRightMouseButton(e) && e.getClickCount() == 1)
-								{
-									menu.show(location, e.getX(), e.getY());
-								}
-							}
-						});
-					}
+					addRouteMenu(shop, shopPanel, shopName, location);
 				});
 				row++;
 
-				if (isCurrency)
-				{
-					shopPanel.add(new JLabel(shopItem.getName()), new GridBagConstraints(0, row, 2, 1, 0.0, 0.0, LINE_END, NONE, NO_INSETS, 4, 4));
-					row++;
-				}
-
 				location.setText(AtlasSourceRouteUtil.wrap(shop.getLocation(), 125));
+				location.setFont(FontManager.getRunescapeSmallFont());
+				location.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+				JLabel stock = new JLabel("Stock: " + shopItem.getStock());
+				stock.setFont(FontManager.getRunescapeSmallFont());
+				stock.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 				shopPanel.add(location, new GridBagConstraints(0, row, 1, 1, 1.0, 0.0, LINE_START, BOTH, new Insets(0, 4, 0, 0), 4, 4));
-				shopPanel.add(new JLabel("x" + shopItem.getStock()), new GridBagConstraints(1, row++, 1, 1, 0.1, 0.0, LINE_END, NONE, NO_INSETS, 4, 4));
+				shopPanel.add(stock, new GridBagConstraints(1, row++, 1, 1, 0.1, 0.0, LINE_END, NONE, NO_INSETS, 4, 4));
 
 				if (AtlasSourceRouteUtil.tilesOrCoords(shop.getTiles(), shop.getCoords(), shop.getPlane()).isEmpty())
 				{
@@ -218,14 +141,91 @@ public class AtlasShopsPanel extends JPanel
 				add(container);
 
 				entries++;
-
-//				JSeparator actionSeparator = new JSeparator(JSeparator.HORIZONTAL);
-//				actionSeparator.setBackground(ColorScheme.LIGHT_GRAY_COLOR);
-//				actionSeparator.setPreferredSize(new Dimension(1, 2));
-////				add(actionSeparator, new GridBagConstraints(0, row++, 4, 1, 1.0, 0.0, CENTER, HORIZONTAL, NO_INSETS, 0, 0));
-//				add(actionSeparator);
-
 			}
 		}
+	}
+
+	// one card per shop: its name and location once, then a line per item the currency buys
+	private JPanel currencyCard(AtlasShop shop, List<AtlasShopItem> items, boolean showMembers)
+	{
+		JPanel card = new JPanel(new DynamicGridLayout(0, 1, 0, 3));
+		card.setBorder(new EmptyBorder(7, 7, 6, 7));
+		card.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+
+		JLabel shopName = new JLabel(AtlasSourceRouteUtil.wrap(shop.getName(), showMembers && shop.isMembers() ? 170 : 190));
+		if (showMembers && shop.isMembers())
+		{
+			AtlasSourceRouteUtil.markMembers(shopName);
+		}
+		card.add(shopName);
+
+		JLabel location = new JLabel(AtlasSourceRouteUtil.wrap(shop.getLocation(), 190));
+		location.setFont(FontManager.getRunescapeSmallFont());
+		location.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+		location.setBorder(new EmptyBorder(0, 0, 3, 0));
+		card.add(location);
+
+		List<JComponent> menuTargets = new ArrayList<>(List.of(card, shopName, location));
+		for (AtlasShopItem shopItem : items)
+		{
+			JPanel line = new JPanel(new BorderLayout(6, 0));
+			line.setOpaque(false);
+			JLabel name = new JLabel(AtlasSourceRouteUtil.wrap(shopItem.getName(), 115));
+			JLabel price = new JLabel();
+			price.setVerticalAlignment(SwingConstants.TOP);
+			String stock = "Stock: " + shopItem.getStock();
+			name.setToolTipText("Click to look up " + shopItem.getName());
+			price.setToolTipText(stock);
+			name.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+			name.addMouseListener(new MouseAdapter()
+			{
+				@Override
+				public void mouseClicked(MouseEvent e)
+				{
+					if (SwingUtilities.isLeftMouseButton(e))
+					{
+						mainPanel.displayItemById(shopItem.getItemID());
+					}
+				}
+			});
+			line.add(name, BorderLayout.CENTER);
+			line.add(price, BorderLayout.EAST);
+			card.add(line);
+			menuTargets.add(name);
+			menuTargets.add(price);
+
+			clientThread.invokeLater(() ->
+			{
+				int itemId = itemManager.canonicalize(shopItem.getItemID());
+				AtlasSourceRouteUtil.smallItemIcon(name, itemManager.getImage(itemId));
+				String amount = shop.getSellMultiplier() != null
+					? String.valueOf(itemManager.getItemComposition(itemId).getPrice() * (Integer.parseInt(shop.getSellMultiplier()) / 1000))
+					: shopItem.getSellPrice();
+				// the currency is the item on show, so only coins need a unit
+				String text = amount + (shopItem.getCurrency().equals("Coins") ? "gp" : "");
+				SwingUtilities.invokeLater(() ->
+				{
+					price.setText(text);
+					price.setToolTipText(amount + " " + shopItem.getCurrency() + ", " + stock.toLowerCase());
+				});
+			});
+		}
+
+		if (AtlasSourceRouteUtil.tilesOrCoords(shop.getTiles(), shop.getCoords(), shop.getPlane()).isEmpty())
+		{
+			card.add(AtlasSourceRouteUtil.noLocationLabel());
+		}
+		clientThread.invokeLater(() -> addRouteMenu(shop, menuTargets.toArray(new JComponent[0])));
+
+		JPanel container = new JPanel(new BorderLayout());
+		container.setBorder(new EmptyBorder(0, 0, 7, 0));
+		container.add(card);
+		return container;
+	}
+
+	private void addRouteMenu(AtlasShop shop, JComponent... targets)
+	{
+		AtlasSourceRouteUtil.addRouteMenu(client, clientThread, eventBus, pluginManager,
+			new HashSet<>(AtlasSourceRouteUtil.tilesOrCoords(shop.getTiles(), shop.getCoords(), shop.getPlane())), targets);
 	}
 }

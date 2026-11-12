@@ -39,6 +39,14 @@ public class AtlasDropsPanelTest
 		assertEquals(14, merged.get(1).get(1).getQuantityLow());
 	}
 
+	@Test
+	public void quantityText()
+	{
+		assertEquals("x1", AtlasDropsPanel.quantityText(List.of(drop("Goblin", 1, "1/2"))));
+		assertEquals("x1 / x14", AtlasDropsPanel.quantityText(List.of(drop("Goblin", 1, "1/2"), drop("Goblin", 14, "1/4"))));
+		assertEquals("x1-300", AtlasDropsPanel.quantityText(List.of(drop("Goblin", 1, "1/2"), drop("Goblin", 14, "1/4"), drop("Goblin", 300, "1/8"))));
+	}
+
 	private static AtlasDropSource drop(String source, int quantity, String rarity)
 	{
 		return new AtlasDropSource(source, quantity, quantity, rarity, "", "combat");

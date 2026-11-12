@@ -5,22 +5,29 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.annotation.Nullable;
+import javax.swing.AbstractAction;
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import lombok.RequiredArgsConstructor;
+import net.runelite.api.Client;
 import net.runelite.api.Constants;
+import net.runelite.api.GameState;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
@@ -63,6 +70,21 @@ final class AtlasSourceRouteUtil
 	{
 		label.setIcon(MEMBERS_ICON);
 		label.setIconTextGap(4);
+	}
+
+	/**
+	 * A scroll pane's view, as wide as the pane: a view that asks for more runs under the edge, as there is no sideways scrollbar.
+	 */
+	static JPanel scrollView()
+	{
+		return new JPanel(new BorderLayout())
+		{
+			@Override
+			public Dimension getPreferredSize()
+			{
+				return new Dimension(0, super.getPreferredSize().height);
+			}
+		};
 	}
 
 	/**
@@ -178,6 +200,53 @@ final class AtlasSourceRouteUtil
 			message.putIfAbsent("source", "Item Atlas");
 			clientThread.invoke(() -> eventBus.post(new PluginMessage(namespace, "path", message)));
 		}
+	}
+
+	/**
+	 * Gives the targets a right-click menu that routes to the nearest of the tiles, when a route plugin is on
+	 * and the player is logged in. Call on the client thread.
+	 */
+	static void addRouteMenu(Client client, ClientThread clientThread, EventBus eventBus, PluginManager pluginManager, Set<WorldPoint> tiles, JComponent... targets)
+	{
+		Router router = findActiveRouter(pluginManager);
+		if (tiles.isEmpty() || router == null || client.getGameState() != GameState.LOGGED_IN)
+		{
+			return;
+		}
+
+		JPopupMenu menu = new JPopupMenu("Menu");
+		// no "start": the route plugin then starts from where the player is when they click
+		menu.add(new JMenuItem(new AbstractAction(router.pluginName)
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				router.route(clientThread, eventBus, Map.of("target", tiles));
+			}
+		}));
+
+		String hint = "Right-click to route with " + router.pluginName;
+		SwingUtilities.invokeLater(() ->
+		{
+			for (JComponent target : targets)
+			{
+				if (target.getToolTipText() == null)
+				{
+					target.setToolTipText(hint);
+				}
+				target.addMouseListener(new MouseAdapter()
+				{
+					@Override
+					public void mouseClicked(MouseEvent e)
+					{
+						if (SwingUtilities.isRightMouseButton(e) && e.getClickCount() == 1)
+						{
+							menu.show(target, e.getX(), e.getY());
+						}
+					}
+				});
+			}
+		});
 	}
 
 	@Nullable
